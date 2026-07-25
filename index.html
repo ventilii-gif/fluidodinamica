@@ -219,6 +219,27 @@
   .quiz-done .big { font-size: 2.6rem; }
   .quiz-done h3 { font-size: 1.3rem; margin: 8px 0 4px; }
 
+  /* ===================== RISOLUTORE ===================== */
+  .solver .picker { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 8px; }
+  .solver .picker .ctrl { flex: 1; min-width: 220px; }
+  .solver select, .solver input[type=text] {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+    border-radius: 10px; background: var(--card-2); color: var(--text);
+    font-size: .95rem; font-family: inherit;
+  }
+  .solver select:focus, .solver input[type=text]:focus { outline: none; border-color: var(--accent); }
+  .solver .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin: 14px 0; }
+  .solver .field label { font-size: .82rem; color: var(--text-soft); font-weight: 600; display: block; margin-bottom: 4px; }
+  .solver .field .u { color: var(--accent); font-weight: 700; }
+  .solver .field input:disabled { opacity: .4; }
+  .solver .formula-hint {
+    font-family: "Cambria Math", Georgia, serif; text-align: center; font-size: 1.08rem;
+    padding: 10px; background: var(--card-2); border: 1px dashed var(--border); border-radius: 10px; margin: 6px 0 4px;
+  }
+  .method-box { margin-top: 16px; }
+  .method-box h4 { margin: 0 0 6px; font-size: .95rem; color: var(--accent-2); }
+  .solver-err { color: var(--bad); font-weight: 600; margin-top: 12px; background: var(--bad-soft); padding: 10px 14px; border-radius: 10px; }
+
   .section-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 34px; }
   .section-nav button { flex: 1; }
   .section-nav button:disabled { opacity: .35; cursor: not-allowed; }
@@ -1066,6 +1087,22 @@ const SECTIONS = [
   },
 
   {
+    id: 'risolutore', nav: 'Risolutore', icon: '🧮', kicker: 'Strumento',
+    title: 'Risolutore di problemi',
+    theory: `
+      <p class="lead">Hai imparato le formule: ora mettile alla prova con i <b>tuoi</b> dati! 🧮 Scegli il tipo di
+      problema, indica <b>cosa vuoi calcolare</b>, inserisci i valori che conosci e ottieni <b>sia il metodo passo
+      passo sia il risultato numerico</b>. Se vuoi, scrivi anche la tua risposta e controlla se è corretta.</p>
+      <div class="callout tip"><span class="lbl">💡 Come si usa</span>
+        Puoi scrivere i decimali con la <b>virgola</b> o con il <b>punto</b> (es. <span class="mono">1,5</span> oppure
+        <span class="mono">1.5</span>). Usa le unità del Sistema Internazionale (metri, m/s, kg/m³, pascal…). Lascia in
+        bianco la casella dell'incognita: la calcola il risolutore. Sbagliare fa parte del gioco: confronta sempre i tuoi
+        passaggi con il metodo mostrato. 💪</div>
+    `,
+    solver: true
+  },
+
+  {
     id: 'glossario', nav: 'Glossario', icon: '📚', kicker: 'Ripasso rapido',
     title: 'Glossario della fluidodinamica',
     theory: `
@@ -1140,6 +1177,196 @@ function buildNav() {
   });
 }
 
+/* ============================================================
+   RISOLUTORE DI PROBLEMI
+   ============================================================ */
+// formattazione numerica all'italiana (virgola decimale)
+function pnum(v) {
+  if (typeof v !== 'number') return v;
+  if (!isFinite(v)) return '—';
+  if (v === 0) return '0';
+  const a = Math.abs(v);
+  let s = (a < 1e-4 || a >= 1e7) ? v.toExponential(3) : String(parseFloat(v.toPrecision(6)));
+  return s.replace('.', ',');
+}
+function el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e; }
+
+const PROBLEMS = [
+  {
+    id: 'continuita', label: 'Continuità (A₁·v₁ = A₂·v₂)', formula: 'A₁·v₁ = A₂·v₂',
+    vars: {
+      A1: { lab: 'A₁ — area sezione 1', unit: 'm²', ph: 'es. 0,002' },
+      v1: { lab: 'v₁ — velocità 1', unit: 'm/s', ph: 'es. 1,5' },
+      A2: { lab: 'A₂ — area sezione 2', unit: 'm²', ph: 'es. 0,0005' },
+      v2: { lab: 'v₂ — velocità 2', unit: 'm/s', ph: 'es. 6' }
+    },
+    targets: {
+      v2: { lab: 'v₂ — velocità nella sezione 2', unit: 'm/s', needs: ['A1', 'v1', 'A2'], run: x => { const r = x.A1 * x.v1 / x.A2; return { value: r, resultText: `v₂ = ${pnum(r)} m/s`, steps: ['Parto dall\'equazione di continuità: A₁·v₁ = A₂·v₂', 'Isolo l\'incognita: v₂ = (A₁·v₁) / A₂', `Sostituisco: v₂ = (${pnum(x.A1)} · ${pnum(x.v1)}) / ${pnum(x.A2)}`, `Calcolo: v₂ = ${pnum(r)} m/s`] }; } },
+      v1: { lab: 'v₁ — velocità nella sezione 1', unit: 'm/s', needs: ['A2', 'v2', 'A1'], run: x => { const r = x.A2 * x.v2 / x.A1; return { value: r, resultText: `v₁ = ${pnum(r)} m/s`, steps: ['Parto da A₁·v₁ = A₂·v₂', 'Isolo l\'incognita: v₁ = (A₂·v₂) / A₁', `Sostituisco: v₁ = (${pnum(x.A2)} · ${pnum(x.v2)}) / ${pnum(x.A1)}`, `Calcolo: v₁ = ${pnum(r)} m/s`] }; } },
+      A2: { lab: 'A₂ — area della sezione 2', unit: 'm²', needs: ['A1', 'v1', 'v2'], run: x => { const r = x.A1 * x.v1 / x.v2; return { value: r, resultText: `A₂ = ${pnum(r)} m²`, steps: ['Parto da A₁·v₁ = A₂·v₂', 'Isolo l\'incognita: A₂ = (A₁·v₁) / v₂', `Sostituisco: A₂ = (${pnum(x.A1)} · ${pnum(x.v1)}) / ${pnum(x.v2)}`, `Calcolo: A₂ = ${pnum(r)} m²`] }; } },
+      A1: { lab: 'A₁ — area della sezione 1', unit: 'm²', needs: ['A2', 'v2', 'v1'], run: x => { const r = x.A2 * x.v2 / x.v1; return { value: r, resultText: `A₁ = ${pnum(r)} m²`, steps: ['Parto da A₁·v₁ = A₂·v₂', 'Isolo l\'incognita: A₁ = (A₂·v₂) / v₁', `Sostituisco: A₁ = (${pnum(x.A2)} · ${pnum(x.v2)}) / ${pnum(x.v1)}`, `Calcolo: A₁ = ${pnum(r)} m²`] }; } }
+    }
+  },
+  {
+    id: 'bernoulli', label: 'Bernoulli (tubo orizzontale)', formula: 'p₁ + ½ρv₁² = p₂ + ½ρv₂²',
+    vars: {
+      rho: { lab: 'ρ — densità', unit: 'kg/m³', ph: 'es. 1000' },
+      v1: { lab: 'v₁ — velocità 1', unit: 'm/s', ph: 'es. 1,5' },
+      v2: { lab: 'v₂ — velocità 2', unit: 'm/s', ph: 'es. 6' },
+      dp: { lab: 'Δp = p₁ − p₂', unit: 'Pa', ph: 'es. 16875' }
+    },
+    targets: {
+      dp: { lab: 'Δp — caduta di pressione (p₁ − p₂)', unit: 'Pa', needs: ['rho', 'v1', 'v2'], run: x => { const r = 0.5 * x.rho * (x.v2 * x.v2 - x.v1 * x.v1); return { value: r, resultText: `Δp = p₁ − p₂ = ${pnum(r)} Pa`, steps: ['Tubo orizzontale: p₁ + ½ρv₁² = p₂ + ½ρv₂²', 'Riordino: p₁ − p₂ = ½·ρ·(v₂² − v₁²)', `Sostituisco: ½ · ${pnum(x.rho)} · (${pnum(x.v2)}² − ${pnum(x.v1)}²)`, `Calcolo: Δp = ${pnum(r)} Pa`] }; } },
+      v2: { lab: 'v₂ — velocità nella strozzatura', unit: 'm/s', needs: ['rho', 'v1', 'dp'], run: x => { const r = Math.sqrt(x.v1 * x.v1 + 2 * x.dp / x.rho); return { value: r, resultText: `v₂ = ${pnum(r)} m/s`, steps: ['Parto da p₁ − p₂ = ½ρ(v₂² − v₁²)', 'Isolo v₂: v₂ = √( v₁² + 2·Δp/ρ )', `Sostituisco: √( ${pnum(x.v1)}² + 2·${pnum(x.dp)}/${pnum(x.rho)} )`, `Calcolo: v₂ = ${pnum(r)} m/s`] }; } }
+    }
+  },
+  {
+    id: 'torricelli', label: 'Torricelli (efflusso da un foro)', formula: 'v = √(2·g·h)',
+    vars: {
+      g: { lab: 'g — gravità', unit: 'm/s²', def: '9,8' },
+      h: { lab: 'h — profondità del foro', unit: 'm', ph: 'es. 1,8' },
+      v: { lab: 'v — velocità di uscita', unit: 'm/s', ph: 'es. 5,94' }
+    },
+    targets: {
+      v: { lab: 'v — velocità di uscita', unit: 'm/s', needs: ['g', 'h'], run: x => { const r = Math.sqrt(2 * x.g * x.h); return { value: r, resultText: `v = ${pnum(r)} m/s`, steps: ['Teorema di Torricelli: v = √(2·g·h)', `Sostituisco: v = √(2 · ${pnum(x.g)} · ${pnum(x.h)})`, `Dentro la radice: 2·g·h = ${pnum(2 * x.g * x.h)}`, `Calcolo: v = ${pnum(r)} m/s`] }; } },
+      h: { lab: 'h — profondità del foro', unit: 'm', needs: ['g', 'v'], run: x => { const r = x.v * x.v / (2 * x.g); return { value: r, resultText: `h = ${pnum(r)} m`, steps: ['Parto da v = √(2·g·h)', 'Elevo al quadrato e isolo h: h = v² / (2·g)', `Sostituisco: h = ${pnum(x.v)}² / (2 · ${pnum(x.g)})`, `Calcolo: h = ${pnum(r)} m`] }; } }
+    }
+  },
+  {
+    id: 'stevino', label: 'Stevino (pressione con la profondità)', formula: 'p = p₀ + ρ·g·h',
+    vars: {
+      p0: { lab: 'p₀ — pressione in superficie', unit: 'Pa', def: '0' },
+      rho: { lab: 'ρ — densità', unit: 'kg/m³', ph: 'es. 1000' },
+      g: { lab: 'g — gravità', unit: 'm/s²', def: '9,8' },
+      h: { lab: 'h — profondità', unit: 'm', ph: 'es. 2,5' },
+      p: { lab: 'p — pressione', unit: 'Pa', ph: 'es. 24500' }
+    },
+    targets: {
+      p: { lab: 'p — pressione alla profondità h', unit: 'Pa', needs: ['p0', 'rho', 'g', 'h'], run: x => { const r = x.p0 + x.rho * x.g * x.h; return { value: r, resultText: `p = ${pnum(r)} Pa`, steps: ['Legge di Stevino: p = p₀ + ρ·g·h', `Sostituisco: p = ${pnum(x.p0)} + ${pnum(x.rho)}·${pnum(x.g)}·${pnum(x.h)}`, `Contributo del liquido ρgh = ${pnum(x.rho * x.g * x.h)} Pa`, `Calcolo: p = ${pnum(r)} Pa`] }; } },
+      h: { lab: 'h — profondità', unit: 'm', needs: ['p', 'p0', 'rho', 'g'], run: x => { const r = (x.p - x.p0) / (x.rho * x.g); return { value: r, resultText: `h = ${pnum(r)} m`, steps: ['Parto da p = p₀ + ρ·g·h', 'Isolo h: h = (p − p₀) / (ρ·g)', `Sostituisco: h = (${pnum(x.p)} − ${pnum(x.p0)}) / (${pnum(x.rho)}·${pnum(x.g)})`, `Calcolo: h = ${pnum(r)} m`] }; } }
+    }
+  },
+  {
+    id: 'archimede', label: 'Archimede (spinta idrostatica)', formula: 'S = ρ·g·V',
+    vars: {
+      rhof: { lab: 'ρ — densità del fluido', unit: 'kg/m³', ph: 'es. 1000' },
+      g: { lab: 'g — gravità', unit: 'm/s²', def: '9,8' },
+      V: { lab: 'V — volume immerso', unit: 'm³', ph: 'es. 0,002' },
+      S: { lab: 'S — spinta di Archimede', unit: 'N', ph: 'es. 19,6' }
+    },
+    targets: {
+      S: { lab: 'S — spinta di Archimede', unit: 'N', needs: ['rhof', 'g', 'V'], run: x => { const r = x.rhof * x.g * x.V; return { value: r, resultText: `S = ${pnum(r)} N`, steps: ['Principio di Archimede: S = ρ·g·V', `Sostituisco: S = ${pnum(x.rhof)}·${pnum(x.g)}·${pnum(x.V)}`, `Calcolo: S = ${pnum(r)} N`] }; } },
+      V: { lab: 'V — volume immerso', unit: 'm³', needs: ['S', 'rhof', 'g'], run: x => { const r = x.S / (x.rhof * x.g); return { value: r, resultText: `V = ${pnum(r)} m³`, steps: ['Parto da S = ρ·g·V', 'Isolo V: V = S / (ρ·g)', `Sostituisco: V = ${pnum(x.S)} / (${pnum(x.rhof)}·${pnum(x.g)})`, `Calcolo: V = ${pnum(r)} m³`] }; } }
+    }
+  },
+  {
+    id: 'galleggiamento', label: 'Galleggia o affonda? (confronto densità)', formula: 'confronto tra ρ_oggetto e ρ_fluido',
+    vars: {
+      rho_o: { lab: 'ρ — densità dell\'oggetto', unit: 'kg/m³', ph: 'es. 500' },
+      rho_f: { lab: 'ρ — densità del fluido', unit: 'kg/m³', def: '1000' }
+    },
+    targets: {
+      esito: { lab: 'Esito: galleggia o affonda', unit: '', checkable: false, needs: ['rho_o', 'rho_f'], run: x => { const floats = x.rho_o < x.rho_f; const frac = floats ? x.rho_o / x.rho_f : 1; const rt = floats ? `Galleggia — frazione immersa ≈ ${pnum(frac * 100)}%` : 'Affonda'; return { value: null, resultText: rt, steps: ['Confronto le densità: se ρ_oggetto < ρ_fluido → galleggia; altrimenti affonda.', `Qui ρ_oggetto = ${pnum(x.rho_o)} kg/m³ e ρ_fluido = ${pnum(x.rho_f)} kg/m³.`, floats ? `ρ_oggetto < ρ_fluido → galleggia. Frazione immersa = ρ_oggetto/ρ_fluido = ${pnum(frac * 100)}%.` : 'ρ_oggetto ≥ ρ_fluido → il peso vince sulla spinta: affonda.'] }; } }
+    }
+  },
+  {
+    id: 'reynolds', label: 'Numero di Reynolds', formula: 'Re = ρ·v·D / η',
+    vars: {
+      rho: { lab: 'ρ — densità', unit: 'kg/m³', ph: 'es. 1000' },
+      v: { lab: 'v — velocità', unit: 'm/s', ph: 'es. 0,15' },
+      D: { lab: 'D — diametro del tubo', unit: 'm', ph: 'es. 0,02' },
+      eta: { lab: 'η — viscosità', unit: 'Pa·s', ph: 'es. 0,001' },
+      Re: { lab: 'Re — numero di Reynolds', unit: '(adim.)', ph: 'es. 3000' }
+    },
+    targets: {
+      Re: { lab: 'Re — numero di Reynolds (+ regime)', unit: '', needs: ['rho', 'v', 'D', 'eta'], run: x => { const r = x.rho * x.v * x.D / x.eta; const reg = r < 2000 ? 'laminare' : (r < 2500 ? 'di transizione' : 'turbolento'); return { value: r, resultText: `Re = ${pnum(r)} → regime ${reg}`, steps: ['Definizione: Re = ρ·v·D / η', `Sostituisco: Re = (${pnum(x.rho)}·${pnum(x.v)}·${pnum(x.D)}) / ${pnum(x.eta)}`, `Calcolo: Re = ${pnum(r)}`, `Confronto con le soglie (≈ 2000–2500): regime ${reg}.`] }; } },
+      v: { lab: 'v — velocità del fluido', unit: 'm/s', needs: ['Re', 'rho', 'D', 'eta'], run: x => { const r = x.Re * x.eta / (x.rho * x.D); return { value: r, resultText: `v = ${pnum(r)} m/s`, steps: ['Parto da Re = ρ·v·D / η', 'Isolo v: v = Re·η / (ρ·D)', `Sostituisco: v = ${pnum(x.Re)}·${pnum(x.eta)} / (${pnum(x.rho)}·${pnum(x.D)})`, `Calcolo: v = ${pnum(r)} m/s`] }; } }
+    }
+  }
+];
+
+function buildSolver(container) {
+  const probSel = el('select'); probSel.setAttribute('aria-label', 'Tipo di problema');
+  PROBLEMS.forEach((p, i) => probSel.add(new Option(p.label, i)));
+  const targetSel = el('select'); targetSel.setAttribute('aria-label', 'Cosa calcolare');
+  const formulaHint = el('div', 'formula-hint');
+  const grid = el('div', 'grid');
+  const ansWrap = el('div', 'field');
+  ansWrap.innerHTML = `<label>La tua risposta <span class="u"></span> <span style="font-weight:400">(facoltativa)</span></label><input type="text" placeholder="scrivi qui il tuo risultato">`;
+  const btn = el('button', 'btn-primary'); btn.textContent = 'Risolvi e verifica'; btn.style.marginTop = '4px';
+  const out = el('div');
+
+  const picker = el('div', 'picker');
+  const c1 = el('div', 'ctrl'); c1.innerHTML = '<label style="font-size:.82rem;color:var(--text-soft);font-weight:600;display:block;margin-bottom:4px">Tipo di problema</label>'; c1.appendChild(probSel);
+  const c2 = el('div', 'ctrl'); c2.innerHTML = '<label style="font-size:.82rem;color:var(--text-soft);font-weight:600;display:block;margin-bottom:4px">Cosa vuoi calcolare?</label>'; c2.appendChild(targetSel);
+  picker.append(c1, c2);
+  container.append(picker, formulaHint, grid, ansWrap, btn, out);
+
+  const curProblem = () => PROBLEMS[+probSel.value];
+  const curTarget = () => curProblem().targets[targetSel.value];
+
+  function renderTargets() {
+    const p = curProblem(); targetSel.innerHTML = '';
+    Object.keys(p.targets).forEach(k => targetSel.add(new Option(p.targets[k].lab, k)));
+  }
+  function renderInputs() {
+    const p = curProblem(); const tgt = curTarget();
+    formulaHint.textContent = 'Formula: ' + p.formula;
+    grid.innerHTML = '';
+    Object.keys(p.vars).forEach(key => {
+      const v = p.vars[key];
+      const f = el('div', 'field');
+      const dis = (key === targetSel.value);
+      const val = v.def != null ? v.def : '';
+      f.innerHTML = `<label>${v.lab} <span class="u">${v.unit || ''}</span></label>` +
+        `<input type="text" data-k="${key}" placeholder="${dis ? '(la calcolo io)' : (v.ph || '')}" value="${dis ? '' : val}" ${dis ? 'disabled' : ''}>`;
+      grid.appendChild(f);
+    });
+    ansWrap.querySelector('.u').textContent = tgt.unit || '';
+    ansWrap.style.display = tgt.checkable === false ? 'none' : '';
+    out.innerHTML = '';
+  }
+  function solve() {
+    const p = curProblem(); const tgt = curTarget(); const x = {};
+    grid.querySelectorAll('input').forEach(inp => {
+      const raw = inp.value.trim().replace(',', '.');
+      x[inp.dataset.k] = raw === '' ? NaN : parseFloat(raw);
+    });
+    const missing = tgt.needs.filter(k => !isFinite(x[k]));
+    if (missing.length) {
+      out.innerHTML = `<div class="solver-err">⚠ Inserisci un valore numerico valido per: ${missing.map(k => p.vars[k].lab.split(' — ')[0]).join(', ')}.</div>`;
+      return;
+    }
+    let res;
+    try { res = tgt.run(x); } catch (e) { out.innerHTML = `<div class="solver-err">⚠ Controlla i dati inseriti.</div>`; return; }
+    if (res.value != null && !isFinite(res.value)) {
+      out.innerHTML = `<div class="solver-err">⚠ Con questi dati il calcolo non è definito (forse c'è uno zero in un denominatore).</div>`;
+      return;
+    }
+    let html = `<div class="method-box"><h4>📐 Metodo</h4>${res.steps.map(st => `<div class="step">▸ ${st}</div>`).join('')}</div>`;
+    html += `<div class="result-pill">✔ ${res.resultText}</div>`;
+    if (tgt.checkable !== false) {
+      const ansRaw = (ansWrap.querySelector('input').value || '').trim().replace(',', '.');
+      if (ansRaw !== '') {
+        const ans = parseFloat(ansRaw);
+        if (isFinite(ans)) {
+          const ok = Math.abs(ans - res.value) <= Math.max(Math.abs(res.value) * 0.02, 1e-9);
+          html += `<div class="feedback ${ok ? 'ok' : 'no'} show" style="margin-top:12px">` +
+            (ok ? '✅ <b>La tua risposta è corretta!</b> Ottimo lavoro. 🌟'
+                : 'La tua risposta non coincide con il valore atteso. 🌱 <span class="why">Rivedi i passaggi del metodo qui sopra e riprova: sei sulla buona strada.</span>') +
+            `</div>`;
+        }
+      }
+    }
+    out.innerHTML = html;
+  }
+
+  probSel.onchange = () => { renderTargets(); renderInputs(); };
+  targetSel.onchange = renderInputs;
+  btn.onclick = solve;
+  renderTargets(); renderInputs();
+}
+
 function buildSection(s, i) {
   const sec = document.createElement('section');
   sec.className = 'section' + (i === currentIndex ? ' active' : '');
@@ -1181,6 +1408,13 @@ function buildSection(s, i) {
       <div id="quizbody-${s.id}"></div>
     </div>` : '';
 
+  // Risolutore (opzionale)
+  const solverBlock = s.solver ? `
+    <div class="card solver" id="solver-${s.id}">
+      <h2 style="margin-top:0">🧮 Inserisci i tuoi dati</h2>
+      <div id="solverbody-${s.id}"></div>
+    </div>` : '';
+
   // Navigazione tra sezioni
   const navBtns = `
     <div class="section-nav">
@@ -1188,7 +1422,7 @@ function buildSection(s, i) {
       <button class="btn-primary" id="next-${s.id}" ${i === SECTIONS.length - 1 ? 'disabled' : ''}>Prossima sezione →</button>
     </div>`;
 
-  sec.innerHTML = head + theory + animBlock + exampleBlock + quizBlock + navBtns;
+  sec.innerHTML = head + theory + animBlock + exampleBlock + quizBlock + solverBlock + navBtns;
   mainEl.appendChild(sec);
 
   // wiring: soluzione
@@ -1213,6 +1447,9 @@ function buildSection(s, i) {
 
   // quiz
   if (s.quiz) renderQuiz(s);
+
+  // risolutore
+  if (s.solver) buildSolver(sec.querySelector('#solverbody-' + s.id));
 }
 
 /* ============================================================

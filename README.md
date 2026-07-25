@@ -16,7 +16,14 @@ Un percorso guidato, con tono rassicurante e motivante:
 4. **Equazione di Bernoulli** — conservazione dell'energia per i fluidi
 5. **Applicazioni** — effetto Venturi, teorema di Torricelli, tubo di Pitot, portanza dell'ala
 6. **Viscosità e numero di Reynolds** — regime laminare e turbolento
-7. **Glossario** — tutte le definizioni e le formule chiave per il ripasso
+7. **Risolutore di problemi** — strumento interattivo per verificare metodo e calcolo con i propri dati
+8. **Glossario** — tutte le definizioni e le formule chiave per il ripasso
+
+### 🧮 Risolutore di problemi
+Uno strumento dove lo studente sceglie il tipo di problema (continuità, Bernoulli,
+Torricelli, Stevino, Archimede, galleggiamento, Reynolds), indica **cosa calcolare**,
+inserisce i propri dati e ottiene **sia il metodo passo passo sia il risultato numerico**.
+Può anche scrivere la propria risposta e verificare se è corretta.
 
 Per ogni sezione trovi:
 

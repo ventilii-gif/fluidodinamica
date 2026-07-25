@@ -8,13 +8,15 @@ nessuna dipendenza. Si apre in qualsiasi browser moderno.
 
 ## ✨ Cosa contiene
 
-Un percorso guidato in 5 tappe, con tono rassicurante e motivante:
+Un percorso guidato, con tono rassicurante e motivante:
 
 1. **Introduzione** — che cos'è un fluido, il fluido ideale, le linee di corrente
-2. **Portata e continuità** — `Q = A·v` e l'equazione `A₁v₁ = A₂v₂`
-3. **Equazione di Bernoulli** — conservazione dell'energia per i fluidi
-4. **Applicazioni** — effetto Venturi, teorema di Torricelli, tubo di Pitot, portanza dell'ala
-5. **Viscosità e numero di Reynolds** — regime laminare e turbolento
+2. **Fluidostatica** — pressione, legge di Stevino, principio di Pascal e di Archimede
+3. **Portata e continuità** — `Q = A·v` e l'equazione `A₁v₁ = A₂v₂`
+4. **Equazione di Bernoulli** — conservazione dell'energia per i fluidi
+5. **Applicazioni** — effetto Venturi, teorema di Torricelli, tubo di Pitot, portanza dell'ala
+6. **Viscosità e numero di Reynolds** — regime laminare e turbolento
+7. **Glossario** — tutte le definizioni e le formule chiave per il ripasso
 
 Per ogni sezione trovi:
 

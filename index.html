@@ -150,6 +150,11 @@
   ul.clean { padding-left: 20px; }
   ul.clean li { margin: 6px 0; }
 
+  dl.gloss { margin: 10px 0; }
+  dl.gloss dt { font-weight: 700; color: var(--accent); margin-top: 14px; }
+  dl.gloss dd { margin: 3px 0 0; padding-left: 0; color: var(--text-soft); }
+  dl.gloss dd .mono, dl.gloss dd var { color: var(--text); }
+
   /* ===================== ANIMAZIONE ===================== */
   .anim-wrap { margin: 14px 0; }
   .canvas-box {
@@ -351,6 +356,75 @@ Animations.streamlines = function (canvas) {
     start() { dims = setupCanvas(canvas, 2.4); if (!dots.length) init(); running = true; frame(); },
     stop() { running = false; cancelAnimationFrame(raf); },
     resize() { if (running) dims = setupCanvas(canvas, 2.4); }
+  };
+};
+
+/* ---- 1b. FLUIDOSTATICA (Archimede + pressione con la profondità) ---- */
+Animations.hydrostatics = function (canvas) {
+  let raf, dims, running = false, t = 0;
+  let rhoObj = 500; // densità dell'oggetto (kg/m³); acqua = 1000
+  const rhoW = 1000, g = 9.8;
+  function frame() {
+    if (!running) return;
+    const { ctx, w, h } = dims; t += 0.016;
+    ctx.clearRect(0, 0, w, h);
+    const tankX = w * 0.06, tankW = w * 0.52, tankTop = h * 0.14, tankBot = h * 0.92;
+    const surface = tankTop + (tankBot - tankTop) * 0.14;
+    // acqua
+    ctx.fillStyle = PAL.water; ctx.globalAlpha = .5;
+    ctx.fillRect(tankX, surface, tankW, tankBot - surface); ctx.globalAlpha = 1;
+    ctx.strokeStyle = PAL.accent; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(tankX, tankTop); ctx.lineTo(tankX, tankBot);
+    ctx.lineTo(tankX + tankW, tankBot); ctx.lineTo(tankX + tankW, tankTop); ctx.stroke();
+    // frecce di pressione lungo la parete (Stevino: cresce con la profondità)
+    const arrX = tankX + tankW - 4;
+    for (let k = 1; k <= 5; k++) {
+      const y = surface + (tankBot - surface) * k / 6;
+      const len = 8 + (y - surface) / (tankBot - surface) * 34;
+      ctx.strokeStyle = PAL.accent2; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(arrX, y); ctx.lineTo(arrX - len, y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(arrX - len, y); ctx.lineTo(arrX - len + 6, y - 4);
+      ctx.lineTo(arrX - len + 6, y + 4); ctx.closePath(); ctx.fillStyle = PAL.accent2; ctx.fill();
+    }
+    // oggetto: frazione immersa = rhoObj/rhoW (se <1 galleggia), altrimenti affonda
+    const boxW = tankW * 0.30, boxH = (tankBot - surface) * 0.34;
+    const boxX = tankX + tankW * 0.16;
+    const floats = rhoObj < rhoW;
+    const frac = floats ? rhoObj / rhoW : 1;
+    let boxTop;
+    if (floats) boxTop = surface - boxH * (1 - frac) + Math.sin(t * 1.6) * 3;
+    else boxTop = tankBot - boxH - 4;
+    ctx.fillStyle = floats ? PAL.accent2 : PAL.warn;
+    ctx.globalAlpha = .92; ctx.fillRect(boxX, boxTop, boxW, boxH); ctx.globalAlpha = 1;
+    ctx.strokeStyle = PAL.text; ctx.lineWidth = 1.5; ctx.strokeRect(boxX, boxTop, boxW, boxH);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(rhoObj + ' kg/m³', boxX + boxW / 2, boxTop + boxH / 2 + 4);
+    ctx.textAlign = 'left';
+    // testo di stato
+    ctx.fillStyle = PAL.text; ctx.font = 'bold 15px sans-serif';
+    ctx.fillText(floats ? '⬆ Galleggia' : '⬇ Affonda', w * 0.64, h * 0.30);
+    ctx.fillStyle = PAL.textSoft; ctx.font = '12.5px sans-serif';
+    const lines = floats
+      ? ['ρ oggetto < ρ acqua', 'Frazione immersa ≈ ' + Math.round(frac * 100) + '%', '(spinta = peso: equilibrio)']
+      : ['ρ oggetto > ρ acqua', 'Il peso vince sulla', 'spinta di Archimede'];
+    lines.forEach((L, i) => ctx.fillText(L, w * 0.64, h * 0.30 + 24 + i * 20));
+    ctx.fillStyle = PAL.accent2; ctx.font = '12px sans-serif';
+    ctx.fillText('→ la pressione cresce con la profondità', w * 0.64, h * 0.86);
+    raf = requestAnimationFrame(frame);
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'controls';
+  wrap.innerHTML = `<div class="ctrl">
+    <label>Densità dell'oggetto (acqua = 1000 kg/m³) <b id="hy-val">500 kg/m³</b></label>
+    <input type="range" id="hy-range" min="200" max="1400" step="20" value="500"></div>`;
+  wrap.querySelector('#hy-range').addEventListener('input', e => {
+    rhoObj = +e.target.value; wrap.querySelector('#hy-val').textContent = rhoObj + ' kg/m³';
+  });
+  return {
+    controls: wrap,
+    start() { dims = setupCanvas(canvas, 2.2); running = true; frame(); },
+    stop() { running = false; cancelAnimationFrame(raf); },
+    resize() { if (running) dims = setupCanvas(canvas, 2.2); }
   };
 };
 
@@ -695,7 +769,72 @@ const SECTIONS = [
   },
 
   {
-    id: 'continuita', nav: 'Portata e continuità', icon: '🚰', kicker: 'Sezione 1',
+    id: 'statica', nav: 'Fluidostatica', icon: '🛟', kicker: 'Sezione 1',
+    title: 'Fluidostatica: i fluidi in quiete',
+    theory: `
+      <p class="lead">Prima di correre, impariamo a stare fermi. 😊 La <b>fluidostatica</b> studia i fluidi
+      <b>in quiete</b>: spiega perché in fondo alla piscina senti le orecchie "tappate" e perché una nave d'acciaio
+      galleggia. Sono le fondamenta su cui poggia tutta la dinamica che vedrai dopo.</p>
+
+      <h2>La pressione</h2>
+      <p>La <b>pressione</b> è la forza che il fluido esercita su ogni unità di superficie:</p>
+      <div class="formula"><var>p</var> = <var>F</var> / <var>A</var></div>
+      <p>Si misura in <b>pascal</b> (1 Pa = 1 N/m²). Un fluido spinge in <b>tutte le direzioni</b>, non solo verso il basso.</p>
+
+      <h2>La legge di Stevino</h2>
+      <p>In un liquido in quiete la pressione <b>aumenta con la profondità</b> <var>h</var>. Alla profondità <var>h</var>
+      la pressione vale:</p>
+      <div class="formula"><var>p</var> = <var>p</var><span class="sub">0</span> + <var>ρ</var> <var>g</var> <var>h</var></div>
+      <p>dove <var>p</var><span class="sub">0</span> è la pressione in superficie (spesso quella atmosferica). Nota che
+      dipende solo dalla <b>profondità</b>, non dalla forma del recipiente. Osserva le frecce nell'animazione: più in basso, più lunghe.</p>
+
+      <h2>Il principio di Pascal</h2>
+      <p>Una pressione applicata a un fluido chiuso si <b>trasmette inalterata</b> in ogni punto. È il segreto del
+      <b>torchio idraulico</b> e dei freni dell'auto: una piccola forza su un pistoncino piccolo diventa una grande forza
+      su un pistone grande.</p>
+
+      <h2>Il principio di Archimede</h2>
+      <p>Un corpo immerso in un fluido riceve una <b>spinta verso l'alto</b> pari al peso del fluido spostato:</p>
+      <div class="formula"><var>S</var> = <var>ρ</var><sub class="sub">fluido</sub> · <var>g</var> · <var>V</var><sub class="sub">immerso</sub></div>
+      <div class="callout tip"><span class="lbl">💡 Galleggia o affonda?</span>
+        Confronta le densità: se la densità del corpo è <b>minore</b> di quella del fluido, galleggia; se è <b>maggiore</b>,
+        affonda. Una nave d'acciaio galleggia perché è per lo più vuota: la sua densità <i>media</i> è minore di quella
+        dell'acqua. Provalo cambiando la densità dell'oggetto qui sotto! 🛟</div>
+    `,
+    anim: 'hydrostatics', animCaption: 'Cambia la densità dell\'oggetto: sotto i 1000 kg/m³ galleggia (e affonda di più man mano che si avvicina all\'acqua); sopra, affonda.',
+    example: {
+      title: 'Pressione sul fondo della piscina',
+      body: `<p>Quanto vale la pressione dovuta all'acqua a <span class="mono">h = 2,5 m</span> di profondità?
+        (acqua <span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">g = 9,8 m/s²</span>; considera solo il contributo del liquido)</p>`,
+      steps: [
+        'Uso la legge di Stevino per il solo liquido: <span class="mono">p = ρ·g·h</span>.',
+        'Sostituisco: <span class="mono">p = 1000 · 9,8 · 2,5</span>.',
+        'Calcolo: <span class="mono">p = 24 500 Pa</span>.',
+        'Converto in kilopascal: <span class="mono">24 500 Pa = 24,5 kPa</span>.'
+      ],
+      result: 'p ≈ 24,5 kPa dovuti all\'acqua: ecco perché a fondo piscina senti la pressione sulle orecchie. ✅'
+    },
+    quiz: [
+      { q: 'La legge di Stevino dice che la pressione in un liquido in quiete dipende...',
+        opts: ['dalla profondità h', 'dalla forma del recipiente', 'dal colore del liquido', 'dalla temperatura dell\'aria'],
+        correct: 0, why: 'p = p₀ + ρgh: conta la profondità (e la densità), non la forma del contenitore.' },
+      { q: 'La pressione si misura in...',
+        opts: ['pascal (Pa)', 'newton (N)', 'metri (m)', 'kg/m³'],
+        correct: 0, why: 'La pressione è forza su area: 1 Pa = 1 N/m².' },
+      { q: 'Secondo il principio di Archimede, un corpo immerso riceve una spinta verso l\'alto pari...',
+        opts: ['al peso del fluido spostato', 'al proprio peso', 'alla propria area', 'alla pressione atmosferica'],
+        correct: 0, why: 'La spinta S = ρ_fluido·g·V_immerso è uguale al peso del fluido spostato dal corpo.' },
+      { q: 'Un oggetto galleggia se la sua densità è...',
+        opts: ['minore di quella del fluido', 'maggiore di quella del fluido', 'esattamente zero', 'uguale a quella dell\'aria'],
+        correct: 0, why: 'Densità del corpo minore del fluido → la spinta basta a sostenerlo: galleggia.' },
+      { q: 'Il principio di Pascal è alla base del funzionamento...',
+        opts: ['del torchio idraulico e dei freni', 'del termometro', 'della bilancia a molla', 'del barometro solo'],
+        correct: 0, why: 'La pressione applicata a un fluido chiuso si trasmette inalterata: è il cuore del torchio idraulico.' }
+    ]
+  },
+
+  {
+    id: 'continuita', nav: 'Portata e continuità', icon: '🚰', kicker: 'Sezione 2',
     title: 'Portata ed equazione di continuità',
     theory: `
       <p class="lead">Perché mettendo il pollice sul tubo dell'acqua lo spruzzo diventa più veloce e va più lontano?
@@ -746,7 +885,7 @@ const SECTIONS = [
   },
 
   {
-    id: 'bernoulli', nav: 'Bernoulli', icon: '⚖️', kicker: 'Sezione 2',
+    id: 'bernoulli', nav: 'Bernoulli', icon: '⚖️', kicker: 'Sezione 3',
     title: 'L\'equazione di Bernoulli',
     theory: `
       <p class="lead">È il cuore della fluidodinamica ed è più amichevole di quanto sembri: dice semplicemente che
@@ -805,7 +944,7 @@ const SECTIONS = [
   },
 
   {
-    id: 'applicazioni', nav: 'Applicazioni', icon: '✈️', kicker: 'Sezione 3',
+    id: 'applicazioni', nav: 'Applicazioni', icon: '✈️', kicker: 'Sezione 4',
     title: 'Bernoulli nella vita reale',
     theory: `
       <p class="lead">Ora arriva la parte divertente: la stessa equazione spiega perché volano gli aerei, come
@@ -864,7 +1003,7 @@ const SECTIONS = [
   },
 
   {
-    id: 'reynolds', nav: 'Viscosità e Reynolds', icon: '🌀', kicker: 'Sezione 4',
+    id: 'reynolds', nav: 'Viscosità e Reynolds', icon: '🌀', kicker: 'Sezione 5',
     title: 'Fluidi reali: viscosità e numero di Reynolds',
     theory: `
       <p class="lead">Fino a ora abbiamo usato il fluido ideale. Aggiungiamo l'ultimo tassello che ci avvicina alla
@@ -924,6 +1063,50 @@ const SECTIONS = [
         opts: ['turbolento', 'laminare', 'più lento', 'più freddo'],
         correct: 0, why: 'v più alta → Re più alto → prevalgono le forze d\'inerzia → turbolenza.' }
     ]
+  },
+
+  {
+    id: 'glossario', nav: 'Glossario', icon: '📚', kicker: 'Ripasso rapido',
+    title: 'Glossario della fluidodinamica',
+    theory: `
+      <p class="lead">Hai completato il percorso: complimenti! 🎉 Tieni qui a portata di mano tutte le definizioni e
+      le formule chiave. Perfetto per un ripasso veloce prima di una verifica.</p>
+
+      <h2>Grandezze e simboli</h2>
+      <dl class="gloss">
+        <dt>Fluido</dt><dd>Sostanza che scorre e prende la forma del recipiente: liquido o gas.</dd>
+        <dt>Fluido ideale</dt><dd>Modello semplificato: incomprimibile, non viscoso, in regime stazionario.</dd>
+        <dt>Densità (<var>ρ</var>)</dt><dd>Massa per unità di volume, in kg/m³. Acqua ≈ 1000 kg/m³.</dd>
+        <dt>Pressione (<var>p</var>)</dt><dd>Forza per unità di superficie: <span class="mono">p = F/A</span>, in pascal (Pa).</dd>
+        <dt>Portata (<var>Q</var>)</dt><dd>Volume di fluido che attraversa una sezione al secondo: <span class="mono">Q = A·v</span>, in m³/s.</dd>
+        <dt>Viscosità (<var>η</var>)</dt><dd>Attrito interno del fluido: quanto "fa fatica" a scorrere. Alta nel miele, bassa nell'aria.</dd>
+        <dt>Numero di Reynolds (<var>Re</var>)</dt><dd>Numero puro (senza unità) che distingue regime laminare da turbolento.</dd>
+      </dl>
+
+      <h2>Leggi e principi</h2>
+      <dl class="gloss">
+        <dt>Legge di Stevino</dt><dd><span class="mono">p = p₀ + ρgh</span> — la pressione in un liquido cresce con la profondità <var>h</var>.</dd>
+        <dt>Principio di Pascal</dt><dd>Una pressione applicata a un fluido chiuso si trasmette inalterata ovunque (torchio idraulico, freni).</dd>
+        <dt>Principio di Archimede</dt><dd>Spinta verso l'alto <span class="mono">S = ρ_fluido·g·V_immerso</span>, pari al peso del fluido spostato.</dd>
+        <dt>Equazione di continuità</dt><dd><span class="mono">A₁·v₁ = A₂·v₂</span> — la portata si conserva: sezione stretta ⇒ velocità alta.</dd>
+        <dt>Equazione di Bernoulli</dt><dd><span class="mono">p + ½ρv² + ρgh = costante</span> — conservazione dell'energia lungo la linea di corrente.</dd>
+        <dt>Teorema di Torricelli</dt><dd><span class="mono">v = √(2gh)</span> — velocità di efflusso da un foro a profondità <var>h</var>.</dd>
+        <dt>Effetto Venturi</dt><dd>In una strozzatura la velocità aumenta e la pressione diminuisce.</dd>
+      </dl>
+
+      <h2>Termini utili</h2>
+      <dl class="gloss">
+        <dt>Linee di corrente</dt><dd>Traiettorie seguite dalle particelle di fluido; dove sono più fitte, il fluido è più veloce.</dd>
+        <dt>Regime stazionario</dt><dd>In ogni punto la velocità del fluido non cambia nel tempo.</dd>
+        <dt>Regime laminare</dt><dd>Il fluido scorre ordinato, a strati paralleli (Re basso).</dd>
+        <dt>Regime turbolento</dt><dd>Il fluido forma vortici e mescolamenti disordinati (Re alto).</dd>
+        <dt>Portanza</dt><dd>Spinta verso l'alto su un'ala, dovuta alla minor pressione dove l'aria è più veloce.</dd>
+      </dl>
+
+      <div class="callout tip"><span class="lbl">🌟 Ottimo lavoro!</span>
+        Se un simbolo o una formula non ti è ancora chiarissimo, nessun problema: torna alla sezione corrispondente e
+        rivedi teoria, animazione ed esempio. Imparare la fisica è proprio questo andirivieni tra idea e dettaglio. Ci sei riuscito/a! 💪</div>
+    `
   }
 ];
 
@@ -966,19 +1149,19 @@ function buildSection(s, i) {
   const head = `<div class="kicker">${s.kicker}</div><h1>${s.title}</h1>`;
   const theory = `<div class="theory">${s.theory}</div>`;
 
-  // Animazione
-  const animBlock = `
+  // Animazione (opzionale)
+  const animBlock = s.anim ? `
     <div class="anim-wrap card">
       <h3>🎬 Animazione — muovi i cursori e osserva</h3>
       <div class="canvas-box"><canvas id="cv-${s.id}"></canvas></div>
       <div id="ctrl-${s.id}"></div>
       <p style="color:var(--text-soft);font-size:.86rem;margin-top:10px">${s.animCaption}</p>
-    </div>`;
+    </div>` : '';
 
-  // Esempio numerico
+  // Esempio numerico (opzionale)
   const ex = s.example;
-  const stepsHtml = ex.steps ? ex.steps.map(st => `<div class="step">▸ ${st}</div>`).join('') : '';
-  const exampleBlock = `
+  const stepsHtml = ex && ex.steps ? ex.steps.map(st => `<div class="step">▸ ${st}</div>`).join('') : '';
+  const exampleBlock = ex ? `
     <div class="card example">
       <span class="tag">🔢 Esempio numerico</span>
       <h3 style="margin-top:10px">${ex.title}</h3>
@@ -988,15 +1171,15 @@ function buildSection(s, i) {
         ${stepsHtml}
         <div class="result-pill">✔ ${ex.result}</div>
       </div>
-    </div>`;
+    </div>` : '';
 
-  // Quiz
-  const quizBlock = `
+  // Quiz (opzionale)
+  const quizBlock = s.quiz ? `
     <div class="card quiz" id="quiz-${s.id}">
       <h2 style="margin-top:0">🎯 Quiz della sezione</h2>
       <div class="qcount">Rispondi per fissare i concetti. Puoi ripetere il quiz quando vuoi.</div>
       <div id="quizbody-${s.id}"></div>
-    </div>`;
+    </div>` : '';
 
   // Navigazione tra sezioni
   const navBtns = `
@@ -1009,23 +1192,27 @@ function buildSection(s, i) {
   mainEl.appendChild(sec);
 
   // wiring: soluzione
-  sec.querySelector('#sol-btn-' + s.id).addEventListener('click', e => {
-    const sol = sec.querySelector('#sol-' + s.id);
-    sol.classList.toggle('show');
-    e.target.textContent = sol.classList.contains('show') ? 'Nascondi la soluzione' : 'Mostra la soluzione passo passo';
-  });
+  if (ex) {
+    sec.querySelector('#sol-btn-' + s.id).addEventListener('click', e => {
+      const sol = sec.querySelector('#sol-' + s.id);
+      sol.classList.toggle('show');
+      e.target.textContent = sol.classList.contains('show') ? 'Nascondi la soluzione' : 'Mostra la soluzione passo passo';
+    });
+  }
   // wiring: navigazione
   sec.querySelector('#prev-' + s.id).addEventListener('click', () => goTo(i - 1));
   sec.querySelector('#next-' + s.id).addEventListener('click', () => goTo(i + 1));
 
   // wiring: animazione + controlli
-  const canvas = sec.querySelector('#cv-' + s.id);
-  const inst = Animations[s.anim](canvas);
-  animInstances[s.id] = inst;
-  if (inst.controls) sec.querySelector('#ctrl-' + s.id).appendChild(inst.controls);
+  if (s.anim) {
+    const canvas = sec.querySelector('#cv-' + s.id);
+    const inst = Animations[s.anim](canvas);
+    animInstances[s.id] = inst;
+    if (inst.controls) sec.querySelector('#ctrl-' + s.id).appendChild(inst.controls);
+  }
 
   // quiz
-  renderQuiz(s);
+  if (s.quiz) renderQuiz(s);
 }
 
 /* ============================================================
@@ -1139,16 +1326,17 @@ function goTo(i) {
   currentIndex = i;
   document.querySelectorAll('.section').forEach((el, k) => el.classList.toggle('active', k === i));
   buildNav();
-  // avvia animazione della nuova sezione
+  // avvia animazione della nuova sezione (se presente)
   const s = SECTIONS[i];
-  activeAnim = animInstances[s.id];
-  requestAnimationFrame(() => { activeAnim.resize(); activeAnim.start(); });
+  activeAnim = animInstances[s.id] || null;
+  if (activeAnim) requestAnimationFrame(() => { activeAnim.resize(); activeAnim.start(); });
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function updateGlobal() {
-  const done = SECTIONS.filter(s => progress[s.id]).length;
-  const pct = Math.round(done / SECTIONS.length * 100);
+  const quizSections = SECTIONS.filter(s => s.quiz);
+  const done = quizSections.filter(s => progress[s.id]).length;
+  const pct = Math.round(done / quizSections.length * 100);
   document.getElementById('globalFill').style.width = pct + '%';
   document.getElementById('globalPct').textContent = pct + '%';
 }
@@ -1185,8 +1373,8 @@ function init() {
   updateGlobal();
 
   // avvia l'animazione della prima sezione
-  activeAnim = animInstances[SECTIONS[0].id];
-  requestAnimationFrame(() => { activeAnim.resize(); activeAnim.start(); });
+  activeAnim = animInstances[SECTIONS[0].id] || null;
+  if (activeAnim) requestAnimationFrame(() => { activeAnim.resize(); activeAnim.start(); });
 }
 
 // ridimensionamento

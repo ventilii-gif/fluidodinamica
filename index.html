@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Fluidodinamica per il liceo: teoria, animazioni, esempi numerici e quiz. Percorso interattivo per studenti di 17 anni.">
-<title>Fluidodinamica in movimento — Impara i fluidi in moto</title>
+<title>Fluidodinamica — Impara i fluidi in moto</title>
 <style>
   /* ===================== TEMA E VARIABILI ===================== */
   :root {
@@ -289,7 +289,7 @@
 <body>
 <header>
   <div class="head-inner">
-    <div class="logo"><span class="drop">💧</span> Fluidodinamica in movimento</div>
+    <div class="logo"><span class="drop">💧</span> Fluidodinamica</div>
     <div class="head-spacer"></div>
     <div class="progress-mini" title="Sezioni completate">
       <span class="lbl-txt">Progresso</span>
@@ -753,7 +753,7 @@ Animations.reynolds = function (canvas) {
    ============================================================ */
 const SECTIONS = [
   {
-    id: 'intro', nav: 'Introduzione', icon: '🏛️', kicker: 'Presentazione',
+    id: 'intro', nav: 'Introduzione', icon: '🏛️', kicker: '',
     title: 'Fluidodinamica: il viaggio che stai per iniziare',
     theory: `
       <p class="lead">Respiri aria, bevi acqua, vedi il fumo salire e i fiumi scorrere: i <b>fluidi</b> sono ovunque.
@@ -1417,7 +1417,7 @@ function buildSection(s, i) {
   sec.className = 'section' + (i === currentIndex ? ' active' : '');
   sec.id = 'sec-' + s.id;
 
-  const head = `<div class="kicker">${s.kicker}</div><h1>${s.title}</h1>`;
+  const head = `${s.kicker ? `<div class="kicker">${s.kicker}</div>` : ''}<h1>${s.title}</h1>`;
   const isModule = !!(s.anim || s.example || s.quiz) && !s.solver;
 
   // --- blocco Simulazioni (opzionale) ---

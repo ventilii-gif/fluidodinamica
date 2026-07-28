@@ -8,29 +8,30 @@ nessuna dipendenza. Si apre in qualsiasi browser moderno.
 
 ## ✨ Cosa contiene
 
-Un percorso guidato, con tono rassicurante e motivante:
+L'app è organizzata a **schede (moduli)** nella barra in alto, con tono rassicurante e motivante:
 
-1. **Introduzione** — che cos'è un fluido, il fluido ideale, le linee di corrente
+1. **Introduzione** — presentazione del percorso, come è organizzato e **riferimenti storici** (da Archimede a Reynolds)
 2. **Fluidostatica** — pressione, legge di Stevino, principio di Pascal e di Archimede
 3. **Portata e continuità** — `Q = A·v` e l'equazione `A₁v₁ = A₂v₂`
-4. **Equazione di Bernoulli** — conservazione dell'energia per i fluidi
+4. **Bernoulli** — conservazione dell'energia per i fluidi
 5. **Applicazioni** — effetto Venturi, teorema di Torricelli, tubo di Pitot, portanza dell'ala
 6. **Viscosità e numero di Reynolds** — regime laminare e turbolento
 7. **Risolutore di problemi** — strumento interattivo per verificare metodo e calcolo con i propri dati
 8. **Glossario** — tutte le definizioni e le formule chiave per il ripasso
 
+### 🗂️ Struttura di ogni modulo
+Dentro ogni scheda-modulo ci sono **quattro sotto-schede** dedicate:
+
+- 📖 **Teoria** — le idee spiegate con parole semplici
+- 🎬 **Simulazioni** — animazioni interattive (Canvas) con cursori da muovere
+- ✏️ **Esercizi** — un esercizio svolto **passo passo**, con **suggerimenti progressivi**
+- 🎯 **Quiz** — domande con le risposte in **posizione casuale** e feedback incoraggiante
+
 ### 🧮 Risolutore di problemi
-Uno strumento dove lo studente sceglie il tipo di problema (continuità, Bernoulli,
+Scheda dedicata dove lo studente sceglie il tipo di problema (continuità, Bernoulli,
 Torricelli, Stevino, Archimede, galleggiamento, Reynolds), indica **cosa calcolare**,
 inserisce i propri dati e ottiene **sia il metodo passo passo sia il risultato numerico**.
 Può anche scrivere la propria risposta e verificare se è corretta.
-
-Per ogni sezione trovi:
-
-- 📖 **Teoria** spiegata con parole semplici
-- 🎬 **Animazioni interattive** (Canvas) con cursori da muovere
-- 🔢 **Esempi numerici** con soluzione passo passo
-- 🎯 **Quiz** con le risposte in **posizione casuale** e feedback incoraggiante
 
 Altre caratteristiche:
 

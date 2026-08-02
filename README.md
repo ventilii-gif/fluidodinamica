@@ -25,7 +25,7 @@ Dentro ogni scheda-modulo ci sono **quattro sotto-schede** dedicate:
 - 📖 **Teoria** — le idee spiegate con parole semplici
 - 🎬 **Simulazioni** — animazioni interattive (Canvas) con cursori da muovere
 - ✏️ **Esercizi** — un esercizio svolto **passo passo**, con **suggerimenti progressivi**
-- 🎯 **Quiz** — domande con le risposte in **posizione casuale** e feedback incoraggiante
+- 🎯 **Quiz** — 15 domande per modulo (**10 di teoria + 5 numeriche**), con le risposte in **posizione casuale** e feedback incoraggiante
 
 ### 🧮 Risolutore di problemi
 Scheda dedicata dove lo studente sceglie il tipo di problema (continuità, Bernoulli,

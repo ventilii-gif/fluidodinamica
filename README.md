@@ -11,7 +11,7 @@ nessuna dipendenza. Si apre in qualsiasi browser moderno.
 L'app è organizzata a **schede (moduli)** nella barra in alto, con tono rassicurante e motivante:
 
 1. **Introduzione** — presentazione del percorso, come è organizzato e **riferimenti storici** (da Archimede a Reynolds)
-2. **Fluidostatica** — pressione, legge di Stevino, principio di Pascal e di Archimede
+2. **Fluidostatica** — pressione, legge di Stevino, principio di Pascal con il **torchio idraulico**, **tubo a U** con due liquidi immiscibili e principio di Archimede (3 simulazioni, 5 esercizi con formule inverse)
 3. **Portata e continuità** — `Q = A·v` e l'equazione `A₁v₁ = A₂v₂`
 4. **Bernoulli** — conservazione dell'energia per i fluidi
 5. **Applicazioni** — effetto Venturi, teorema di Torricelli, tubo di Pitot, portanza dell'ala

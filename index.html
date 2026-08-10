@@ -476,6 +476,137 @@ Animations.hydrostatics = function (canvas) {
   };
 };
 
+/* ---- 1c. TORCHIO IDRAULICO (principio di Pascal) ---- */
+Animations.hydraulicPress = function (canvas) {
+  let raf, dims, running = false, t = 0;
+  let F1 = 50, ratio = 5;
+  function arrow(ctx, x, y1, y2, col) {
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2); ctx.stroke();
+    const dir = y2 > y1 ? 1 : -1;
+    ctx.beginPath(); ctx.moveTo(x, y2); ctx.lineTo(x - 5, y2 - dir * 9); ctx.lineTo(x + 5, y2 - dir * 9); ctx.closePath(); ctx.fill();
+  }
+  function frame() {
+    if (!running) return;
+    const { ctx, w, h } = dims; t += 0.016;
+    ctx.clearRect(0, 0, w, h);
+    const F2 = F1 * ratio;
+    const pump = (Math.sin(t * 1.6) + 1) / 2;
+    const yTop = h * 0.30, floorY = h * 0.80, chH = h * 0.10;
+    const smallW = w * 0.07, bigW = smallW * ratio;
+    const smallX = w * 0.10, bigX = Math.min(w * 0.55, w * 0.95 - bigW);
+    // fluido nel contenitore a U
+    ctx.fillStyle = PAL.water; ctx.globalAlpha = .45;
+    ctx.fillRect(smallX, yTop + h * 0.16, smallW, floorY - (yTop + h * 0.16));
+    ctx.fillRect(bigX, yTop + h * 0.10, bigW, floorY - (yTop + h * 0.10));
+    ctx.fillRect(smallX, floorY, (bigX + bigW) - smallX, chH);
+    ctx.globalAlpha = 1;
+    // pareti dei cilindri
+    ctx.strokeStyle = PAL.accent; ctx.lineWidth = 2.5;
+    ctx.strokeRect(smallX, yTop, smallW, floorY + chH - yTop);
+    ctx.strokeRect(bigX, yTop, bigW, floorY + chH - yTop);
+    // pistoni: il piccolo scende, il grande sale di 1/ratio
+    const smallPistonY = yTop + h * 0.16 + pump * h * 0.10;
+    const bigPistonY = yTop + h * 0.10 - (pump * h * 0.10) / ratio;
+    ctx.fillStyle = PAL.textSoft;
+    ctx.fillRect(smallX, smallPistonY, smallW, 10);
+    ctx.fillRect(bigX, bigPistonY, bigW, 10);
+    // carico sul pistone grande
+    ctx.fillStyle = PAL.accent2;
+    const loadW = bigW * 0.72, loadH = h * 0.13;
+    ctx.fillRect(bigX + (bigW - loadW) / 2, bigPistonY - loadH, loadW, loadH);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('carico', bigX + bigW / 2, bigPistonY - loadH / 2 + 4);
+    // frecce delle forze
+    arrow(ctx, smallX + smallW / 2, yTop + h * 0.02, smallPistonY - 4, PAL.bad);
+    arrow(ctx, bigX + bigW / 2, bigPistonY - loadH - 4, bigPistonY - loadH - h * 0.10, PAL.good);
+    // etichette
+    ctx.fillStyle = PAL.text; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('F₁ = ' + pnum(F1) + ' N', smallX + smallW / 2, yTop - 8);
+    ctx.fillText('F₂ = ' + pnum(F2) + ' N', bigX + bigW / 2, yTop - 8);
+    ctx.fillStyle = PAL.accent2; ctx.font = '12.5px sans-serif';
+    ctx.fillText('F₂ = F₁ · (A₂/A₁) = ' + pnum(F1) + ' · ' + ratio + ' = ' + pnum(F2) + ' N', w / 2, h * 0.98);
+    ctx.textAlign = 'left';
+    raf = requestAnimationFrame(frame);
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'controls';
+  wrap.innerHTML = `
+    <div class="ctrl">
+      <label>Forza applicata F₁ <b id="hp-f">50 N</b></label>
+      <input type="range" id="hp-frange" min="10" max="200" step="5" value="50">
+    </div>
+    <div class="ctrl">
+      <label>Rapporto delle aree A₂/A₁ <b id="hp-r">5×</b></label>
+      <input type="range" id="hp-rrange" min="2" max="6" step="1" value="5">
+    </div>`;
+  wrap.querySelector('#hp-frange').addEventListener('input', e => { F1 = +e.target.value; wrap.querySelector('#hp-f').textContent = F1 + ' N'; });
+  wrap.querySelector('#hp-rrange').addEventListener('input', e => { ratio = +e.target.value; wrap.querySelector('#hp-r').textContent = ratio + '×'; });
+  return {
+    controls: wrap,
+    start() { dims = setupCanvas(canvas, 2.1); running = true; frame(); },
+    stop() { running = false; cancelAnimationFrame(raf); },
+    resize() { if (running) dims = setupCanvas(canvas, 2.1); }
+  };
+};
+
+/* ---- 1d. TUBO AD U (due fluidi immiscibili) ---- */
+Animations.utube = function (canvas) {
+  let raf, dims, running = false;
+  const rho1 = 1000;
+  let rho2 = 800;
+  function frame() {
+    if (!running) return;
+    const { ctx, w, h } = dims;
+    ctx.clearRect(0, 0, w, h);
+    const armW = w * 0.11, gap = w * 0.14;
+    const leftX = w * 0.30, rightX = leftX + gap + armW;
+    const topY = h * 0.16, botY = h * 0.86;
+    const h1 = h * 0.42;
+    let h2 = h1 * rho1 / rho2;
+    const maxH = botY - topY - 4;
+    const sc = h2 > maxH ? maxH / h2 : 1;
+    const H1 = h1 * sc, H2 = h2 * sc;
+    // contorno del tubo a U
+    ctx.strokeStyle = PAL.border; ctx.lineWidth = 3;
+    ctx.strokeRect(leftX, topY, armW, botY - topY);
+    ctx.strokeRect(rightX, topY, armW, botY - topY);
+    ctx.beginPath(); ctx.moveTo(leftX, botY); ctx.lineTo(rightX + armW, botY); ctx.stroke();
+    // fluidi
+    ctx.fillStyle = PAL.water; ctx.globalAlpha = .55; ctx.fillRect(leftX + 1, botY - H1, armW - 2, H1); ctx.globalAlpha = 1;
+    ctx.fillStyle = PAL.warn; ctx.globalAlpha = .55; ctx.fillRect(rightX + 1, botY - H2, armW - 2, H2); ctx.globalAlpha = 1;
+    // livelli
+    ctx.strokeStyle = PAL.accent; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(leftX - 10, botY - H1); ctx.lineTo(leftX + armW + 6, botY - H1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(rightX - 6, botY - H2); ctx.lineTo(rightX + armW + 10, botY - H2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = PAL.text; ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'right'; ctx.fillText('h₁', leftX - 12, botY - H1 / 2);
+    ctx.textAlign = 'left'; ctx.fillText('h₂', rightX + armW + 12, botY - H2 / 2);
+    // densità
+    ctx.textAlign = 'center'; ctx.font = '12px sans-serif';
+    ctx.fillStyle = PAL.accent; ctx.fillText('ρ₁ = ' + rho1, leftX + armW / 2, botY - H1 - 8);
+    ctx.fillStyle = PAL.warn; ctx.fillText('ρ₂ = ' + rho2, rightX + armW / 2, botY - H2 - 8);
+    // relazione
+    ctx.fillStyle = PAL.text; ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('All\'interfaccia: ρ₁·h₁ = ρ₂·h₂', w / 2, h * 0.09);
+    ctx.textAlign = 'left';
+    raf = requestAnimationFrame(frame);
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'controls';
+  wrap.innerHTML = `<div class="ctrl">
+    <label>Densità del fluido di destra ρ₂ (a sinistra acqua = 1000 kg/m³) <b id="ut-r">800 kg/m³</b></label>
+    <input type="range" id="ut-range" min="400" max="1600" step="20" value="800"></div>`;
+  wrap.querySelector('#ut-range').addEventListener('input', e => { rho2 = +e.target.value; wrap.querySelector('#ut-r').textContent = rho2 + ' kg/m³'; });
+  return {
+    controls: wrap,
+    start() { dims = setupCanvas(canvas, 2.0); running = true; frame(); },
+    stop() { running = false; cancelAnimationFrame(raf); },
+    resize() { if (running) dims = setupCanvas(canvas, 2.0); }
+  };
+};
+
 /* ---- 2. CONTINUITÀ (tubo che si restringe) ---- */
 Animations.continuity = function (canvas) {
   let raf, dims, running = false;
@@ -833,10 +964,24 @@ const SECTIONS = [
       <p>dove <var>p</var><span class="sub">0</span> è la pressione in superficie (spesso quella atmosferica). Nota che
       dipende solo dalla <b>profondità</b>, non dalla forma del recipiente. Osserva le frecce nell'animazione: più in basso, più lunghe.</p>
 
-      <h2>Il principio di Pascal</h2>
+      <h2>Il principio di Pascal e il torchio idraulico</h2>
       <p>Una pressione applicata a un fluido chiuso si <b>trasmette inalterata</b> in ogni punto. È il segreto del
-      <b>torchio idraulico</b> e dei freni dell'auto: una piccola forza su un pistoncino piccolo diventa una grande forza
-      su un pistone grande.</p>
+      <b>torchio idraulico</b> (e dei freni dell'auto): la stessa pressione agisce su due pistoni di area diversa.</p>
+      <p>Essendo la pressione uguale sui due pistoni, <var>p</var> = <var>F</var><span class="sub">1</span>/<var>A</var><span class="sub">1</span> = <var>F</var><span class="sub">2</span>/<var>A</var><span class="sub">2</span>, da cui:</p>
+      <div class="formula"><var>F</var><span class="sub">2</span> = <var>F</var><span class="sub">1</span> · ( <var>A</var><span class="sub">2</span> / <var>A</var><span class="sub">1</span> )</div>
+      <p>Con il pistone grande molte volte più largo del piccolo, una forza modesta solleva un carico enorme: è la
+      <b>moltiplicazione della forza</b>. Nulla è gratis, però: l'energia si conserva, quindi il pistone piccolo deve
+      compiere una corsa più lunga (<var>F</var><span class="sub">1</span>·<var>d</var><span class="sub">1</span> = <var>F</var><span class="sub">2</span>·<var>d</var><span class="sub">2</span>).
+      Provalo nella simulazione del <b>torchio idraulico</b>.</p>
+
+      <h2>Il tubo a U con due liquidi immiscibili</h2>
+      <p>Versa due liquidi che <b>non si mescolano</b> (per esempio acqua e olio) in un tubo a forma di U aperto ai due lati:
+      si dispongono in colonne di <b>altezze diverse</b>. Nel punto in cui i due liquidi si toccano (l'<b>interfaccia</b>)
+      la pressione che arriva da destra e quella che arriva da sinistra devono essere uguali. Da questo equilibrio segue:</p>
+      <div class="formula"><var>ρ</var><span class="sub">1</span> · <var>h</var><span class="sub">1</span> = <var>ρ</var><span class="sub">2</span> · <var>h</var><span class="sub">2</span></div>
+      <p>dove <var>h</var><span class="sub">1</span> e <var>h</var><span class="sub">2</span> sono le altezze delle due colonne sopra l'interfaccia.
+      Il liquido <b>meno denso</b> forma la colonna <b>più alta</b>. È un metodo semplice per <b>misurare una densità</b> sconosciuta:
+      <var>ρ</var><span class="sub">2</span> = <var>ρ</var><span class="sub">1</span> · <var>h</var><span class="sub">1</span> / <var>h</var><span class="sub">2</span>. Osservalo nella simulazione del <b>tubo a U</b>.</p>
 
       <h2>Il principio di Archimede</h2>
       <p>Un corpo immerso in un fluido riceve una <b>spinta verso l'alto</b> pari al peso del fluido spostato:</p>
@@ -846,23 +991,84 @@ const SECTIONS = [
         affonda. Una nave d'acciaio galleggia perché è per lo più vuota: la sua densità <i>media</i> è minore di quella
         dell'acqua. Provalo cambiando la densità dell'oggetto qui sotto! 🛟</div>
     `,
-    anim: 'hydrostatics', animCaption: 'Cambia la densità dell\'oggetto: sotto i 1000 kg/m³ galleggia (e affonda di più man mano che si avvicina all\'acqua); sopra, affonda.',
-    example: {
-      title: 'Pressione sul fondo della piscina',
-      body: `<p>Quanto vale la pressione dovuta all'acqua a <span class="mono">h = 2,5 m</span> di profondità?
-        (acqua <span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">g = 9,8 m/s²</span>; considera solo il contributo del liquido)</p>`,
-      hints: [
-        'Quale legge collega la pressione alla profondità in un liquido fermo? Pensa a Stevino.',
-        'Qui interessa solo il contributo del liquido, quindi p = ρ·g·h. Hai già ρ, g e h: devi solo moltiplicarli.'
-      ],
-      steps: [
-        'Uso la legge di Stevino per il solo liquido: <span class="mono">p = ρ·g·h</span>.',
-        'Sostituisco: <span class="mono">p = 1000 · 9,8 · 2,5</span>.',
-        'Calcolo: <span class="mono">p = 24 500 Pa</span>.',
-        'Converto in kilopascal: <span class="mono">24 500 Pa = 24,5 kPa</span>.'
-      ],
-      result: 'p ≈ 24,5 kPa dovuti all\'acqua: ecco perché a fondo piscina senti la pressione sulle orecchie. ✅'
-    },
+    sims: [
+      { anim: 'hydrostatics', title: 'Galleggiamento e pressione', caption: "Cambia la densità dell'oggetto: sotto i 1000 kg/m³ galleggia (tanto più immerso quanto più si avvicina all'acqua); sopra, affonda. Le frecce mostrano la pressione che cresce con la profondità." },
+      { anim: 'hydraulicPress', title: 'Torchio idraulico', caption: "Regola la forza F₁ e il rapporto delle aree A₂/A₁: sul pistone grande agisce F₂ = F₁·(A₂/A₁). Una piccola forza solleva un grande carico." },
+      { anim: 'utube', title: 'Tubo a U (due liquidi immiscibili)', caption: "Cambia la densità ρ₂ del liquido di destra: le due colonne rispettano ρ₁·h₁ = ρ₂·h₂. Il liquido meno denso sale più in alto." }
+    ],
+    exercises: [
+      { title: 'Pressione sul fondo della piscina', tag: 'Stevino',
+        body: `<p>Quanto vale la pressione dovuta all'acqua a <span class="mono">h = 2,5 m</span> di profondità?
+          (acqua <span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">g = 9,8 m/s²</span>; considera solo il contributo del liquido)</p>`,
+        hints: [
+          'Quale legge collega la pressione alla profondità in un liquido fermo? Pensa a Stevino.',
+          'Qui interessa solo il contributo del liquido, quindi p = ρ·g·h. Hai già ρ, g e h: devi solo moltiplicarli.'
+        ],
+        steps: [
+          'Uso la legge di Stevino per il solo liquido: <span class="mono">p = ρ·g·h</span>.',
+          'Sostituisco: <span class="mono">p = 1000 · 9,8 · 2,5</span>.',
+          'Calcolo: <span class="mono">p = 24 500 Pa</span>.',
+          'Converto in kilopascal: <span class="mono">24 500 Pa = 24,5 kPa</span>.'
+        ],
+        result: "p ≈ 24,5 kPa dovuti all'acqua: ecco perché a fondo piscina senti la pressione sulle orecchie. ✅" },
+      { title: 'A quale profondità? (formula inversa di Stevino)', tag: 'formula inversa',
+        body: `<p>In acqua (<span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">g = 9,8 m/s²</span>) la pressione dovuta al
+          solo liquido vale <span class="mono">p = 14 700 Pa</span>. A quale profondità <span class="mono">h</span> ci troviamo?</p>`,
+        hints: [
+          'Parti dalla legge di Stevino p = ρ·g·h e chiediti come isolare h.',
+          'Isola h dividendo entrambi i membri per ρ·g: h = p / (ρ·g).'
+        ],
+        steps: [
+          'Legge di Stevino (solo liquido): <span class="mono">p = ρ·g·h</span>.',
+          'Isolo l\'incognita: <span class="mono">h = p / (ρ·g)</span>.',
+          'Sostituisco: <span class="mono">h = 14 700 / (1000 · 9,8)</span>.',
+          'Calcolo: <span class="mono">h = 14 700 / 9 800 = 1,5 m</span>.'
+        ],
+        result: 'h = 1,5 m. ✅' },
+      { title: 'Il torchio idraulico: la forza risultante', tag: 'torchio idraulico',
+        body: `<p>Su un torchio idraulico applichi <span class="mono">F₁ = 40 N</span> sul pistone piccolo. Il pistone grande ha
+          area <b>8 volte</b> quella del piccolo (<span class="mono">A₂/A₁ = 8</span>). Quanto vale la forza <span class="mono">F₂</span> sul pistone grande?</p>`,
+        hints: [
+          'La pressione è la stessa sui due pistoni: p = F₁/A₁ = F₂/A₂.',
+          'Isola F₂ moltiplicando per il rapporto delle aree: F₂ = F₁·(A₂/A₁).'
+        ],
+        steps: [
+          'Stessa pressione sui due pistoni: <span class="mono">F₁/A₁ = F₂/A₂</span>.',
+          'Isolo F₂: <span class="mono">F₂ = F₁ · (A₂/A₁)</span>.',
+          'Sostituisco: <span class="mono">F₂ = 40 · 8</span>.',
+          'Calcolo: <span class="mono">F₂ = 320 N</span>.'
+        ],
+        result: 'F₂ = 320 N: la forza è moltiplicata per 8. ✅' },
+      { title: 'Quale forza applicare? (formula inversa del torchio)', tag: 'formula inversa',
+        body: `<p>Vuoi sollevare un carico che richiede <span class="mono">F₂ = 600 N</span> sul pistone grande. Il rapporto delle aree
+          è <span class="mono">A₂/A₁ = 5</span>. Quale forza <span class="mono">F₁</span> devi applicare sul pistone piccolo?</p>`,
+        hints: [
+          'Parti dalla relazione del torchio: F₂ = F₁·(A₂/A₁).',
+          'Isola F₁ dividendo per il rapporto delle aree: F₁ = F₂ / (A₂/A₁).'
+        ],
+        steps: [
+          'Parto da <span class="mono">F₂ = F₁ · (A₂/A₁)</span>.',
+          'Isolo F₁: <span class="mono">F₁ = F₂ / (A₂/A₁)</span>.',
+          'Sostituisco: <span class="mono">F₁ = 600 / 5</span>.',
+          'Calcolo: <span class="mono">F₁ = 120 N</span>.'
+        ],
+        result: 'F₁ = 120 N: bastano 120 N per sollevare un carico da 600 N. ✅' },
+      { title: 'Misurare una densità con il tubo a U', tag: 'tubo a U · formula inversa',
+        body: `<p>In un tubo a U ci sono acqua (<span class="mono">ρ₁ = 1000 kg/m³</span>) e un olio immiscibile. Le colonne sopra
+          l'interfaccia misurano <span class="mono">h₁ = 20 cm</span> (acqua) e <span class="mono">h₂ = 25 cm</span> (olio).
+          Qual è la densità <span class="mono">ρ₂</span> dell'olio?</p>`,
+        hints: [
+          "All'interfaccia le pressioni si equilibrano: ρ₁·h₁ = ρ₂·h₂.",
+          'Isola ρ₂: ρ₂ = ρ₁·h₁ / h₂. Le altezze possono restare in cm, perché sono in rapporto.'
+        ],
+        steps: [
+          'Equilibrio all\'interfaccia: <span class="mono">ρ₁·h₁ = ρ₂·h₂</span>.',
+          'Isolo l\'incognita: <span class="mono">ρ₂ = ρ₁·h₁ / h₂</span>.',
+          'Sostituisco (le altezze in cm si semplificano): <span class="mono">ρ₂ = 1000 · 20 / 25</span>.',
+          'Calcolo: <span class="mono">ρ₂ = 800 kg/m³</span>.'
+        ],
+        result: "ρ₂ = 800 kg/m³: l'olio, meno denso dell'acqua, forma la colonna più alta. ✅" }
+    ],
     quiz: [
       { q: "La legge di Stevino dice che la pressione in un liquido in quiete dipende...",
         opts: ["dalla profondità h", "dalla forma del recipiente", "dal colore del liquido", "dalla temperatura dell'aria"],
@@ -1367,7 +1573,7 @@ function saveProgress() { try { localStorage.setItem(STORE_KEY, JSON.stringify(p
 
 let currentIndex = 0;
 const animInstances = {}; // id -> instance
-let runningAnim = null;
+let runningAnims = [];
 
 /* ============================================================
    COSTRUZIONE DELL'INTERFACCIA
@@ -1583,37 +1789,41 @@ function buildSection(s, i) {
   sec.id = 'sec-' + s.id;
 
   const head = `${s.kicker ? `<div class="kicker">${s.kicker}</div>` : ''}<h1>${s.title}</h1>`;
-  const isModule = !!(s.anim || s.example || s.quiz) && !s.solver;
+  // liste generalizzate: un modulo può avere più simulazioni e più esercizi
+  const simList = s.sims || (s.anim ? [{ anim: s.anim, caption: s.animCaption }] : []);
+  const exList = s.exercises || (s.example ? [s.example] : []);
+  const isModule = !!(simList.length || exList.length || s.quiz) && !s.solver;
 
-  // --- blocco Simulazioni (opzionale) ---
-  const animBlock = s.anim ? `
+  // --- blocco Simulazioni (una o più) ---
+  const animBlock = simList.length ? simList.map((sim, idx) => `
     <div class="anim-wrap card">
-      <h3>🎬 Simulazione — muovi i cursori e osserva</h3>
-      <div class="canvas-box"><canvas id="cv-${s.id}"></canvas></div>
-      <div id="ctrl-${s.id}"></div>
-      <p style="color:var(--text-soft);font-size:.86rem;margin-top:10px">${s.animCaption}</p>
-    </div>` : '';
+      <h3>🎬 ${sim.title ? sim.title + ' — ' : 'Simulazione — '}muovi i cursori e osserva</h3>
+      <div class="canvas-box"><canvas id="cv-${s.id}-${idx}"></canvas></div>
+      <div id="ctrl-${s.id}-${idx}"></div>
+      <p style="color:var(--text-soft);font-size:.86rem;margin-top:10px">${sim.caption || ''}</p>
+    </div>`).join('') : '';
 
-  // --- blocco Esercizi: esercizio svolto con suggerimenti progressivi (opzionale) ---
-  const ex = s.example;
-  const stepsHtml = ex && ex.steps ? ex.steps.map(st => `<div class="step">▸ ${st}</div>`).join('') : '';
-  const hintsHtml = ex && ex.hints ? ex.hints.map((h, k) => `<div class="hint" data-h="${k}" style="display:none">💡 <b>Suggerimento ${k + 1}:</b> ${h}</div>`).join('') : '';
-  const eserBlock = ex ? `
+  // --- blocco Esercizi: uno o più, con suggerimenti progressivi ---
+  const eserBlock = exList.length ? (exList.map((ex, idx) => {
+    const stepsHtml = ex.steps ? ex.steps.map(st => `<div class="step">▸ ${st}</div>`).join('') : '';
+    const hintsHtml = ex.hints ? ex.hints.map((h, k) => `<div class="hint" style="display:none">💡 <b>Suggerimento ${k + 1}:</b> ${h}</div>`).join('') : '';
+    const label = exList.length > 1 ? `✏️ Esercizio ${idx + 1} di ${exList.length}` : '✏️ Esercizio svolto';
+    return `
     <div class="card example">
-      <span class="tag">✏️ Esercizio svolto</span>
+      <span class="tag">${label}${ex.tag ? ' · ' + ex.tag : ''}</span>
       <h3 style="margin-top:10px">${ex.title}</h3>
       ${ex.body}
-      <div class="hints" id="hints-${s.id}">${hintsHtml}</div>
+      <div class="hints" id="hints-${s.id}-${idx}">${hintsHtml}</div>
       <div class="eser-actions">
-        ${ex.hints && ex.hints.length ? `<button class="btn-ghost" id="hint-btn-${s.id}">💡 Dammi un suggerimento</button>` : ''}
-        <button class="btn-ghost" id="sol-btn-${s.id}">Mostra la soluzione completa</button>
+        ${ex.hints && ex.hints.length ? `<button class="btn-ghost" id="hint-btn-${s.id}-${idx}">💡 Dammi un suggerimento</button>` : ''}
+        <button class="btn-ghost" id="sol-btn-${s.id}-${idx}">Mostra la soluzione completa</button>
       </div>
-      <div class="solution" id="sol-${s.id}">
+      <div class="solution" id="sol-${s.id}-${idx}">
         ${stepsHtml}
         <div class="result-pill">✔ ${ex.result}</div>
       </div>
-    </div>
-    <p style="color:var(--text-soft);font-size:.86rem;margin-top:12px">Vuoi provare con i tuoi numeri? Vai alla scheda <b>🧮 Risolutore</b> in alto.</p>` : '';
+    </div>`;
+  }).join('')) + `<p style="color:var(--text-soft);font-size:.86rem;margin-top:12px">Vuoi provare con i tuoi numeri? Vai alla scheda <b>🧮 Risolutore</b> in alto.</p>` : '';
 
   // --- blocco Quiz (opzionale) ---
   const quizBlock = s.quiz ? `
@@ -1641,8 +1851,8 @@ function buildSection(s, i) {
   let bodyHtml;
   if (isModule) {
     const subs = [['teoria', '📖 Teoria', `<div class="theory">${s.theory}</div>`]];
-    if (s.anim) subs.push(['sim', '🎬 Simulazioni', animBlock]);
-    if (s.example) subs.push(['eser', '✏️ Esercizi', eserBlock]);
+    if (simList.length) subs.push(['sim', '🎬 Simulazioni', animBlock]);
+    if (exList.length) subs.push(['eser', '✏️ Esercizi', eserBlock]);
     if (s.quiz) subs.push(['quiz', '🎯 Quiz', quizBlock]);
     const bar = `<div class="subtabs">${subs.map((t, k) => `<button class="subtab${k === 0 ? ' active' : ''}" data-sub="${t[0]}">${t[1]}</button>`).join('')}</div>`;
     const panels = subs.map((t, k) => `<div class="subpanel${k === 0 ? ' active' : ''}" data-panel="${t[0]}">${t[2]}</div>`).join('');
@@ -1658,7 +1868,7 @@ function buildSection(s, i) {
   sec.querySelector('#prev-' + s.id).addEventListener('click', () => goTo(i - 1));
   sec.querySelector('#next-' + s.id).addEventListener('click', () => goTo(i + 1));
 
-  // wiring: sotto-schede + ciclo di vita dell'animazione
+  // wiring: sotto-schede + ciclo di vita delle animazioni
   if (isModule) {
     const subtabs = [...sec.querySelectorAll('.subtab')];
     const panels = [...sec.querySelectorAll('.subpanel')];
@@ -1666,34 +1876,36 @@ function buildSection(s, i) {
       subtabs.forEach(x => x.classList.remove('active'));
       tb.classList.add('active');
       panels.forEach(p => p.classList.toggle('active', p.dataset.panel === tb.dataset.sub));
-      if (tb.dataset.sub === 'sim') startAnim(animInstances[s.id]); else stopRunningAnim();
+      if (tb.dataset.sub === 'sim') startAnims(animInstances[s.id]); else stopRunningAnims();
     }));
   }
 
-  // wiring: suggerimenti progressivi + soluzione completa
-  if (ex) {
+  // wiring: suggerimenti progressivi + soluzione completa (per ogni esercizio)
+  exList.forEach((ex, idx) => {
     if (ex.hints && ex.hints.length) {
       let shown = 0;
-      const hintBtn = sec.querySelector('#hint-btn-' + s.id);
-      const hintEls = [...sec.querySelectorAll('#hints-' + s.id + ' .hint')];
+      const hintBtn = sec.querySelector(`#hint-btn-${s.id}-${idx}`);
+      const hintEls = [...sec.querySelectorAll(`#hints-${s.id}-${idx} .hint`)];
       hintBtn.addEventListener('click', () => {
         if (shown < hintEls.length) { hintEls[shown].style.display = 'block'; shown++; }
         if (shown >= hintEls.length) { hintBtn.disabled = true; hintBtn.textContent = 'Nessun altro suggerimento'; }
       });
     }
-    sec.querySelector('#sol-btn-' + s.id).addEventListener('click', e => {
-      const sol = sec.querySelector('#sol-' + s.id);
+    sec.querySelector(`#sol-btn-${s.id}-${idx}`).addEventListener('click', e => {
+      const sol = sec.querySelector(`#sol-${s.id}-${idx}`);
       sol.classList.toggle('show');
       e.target.textContent = sol.classList.contains('show') ? 'Nascondi la soluzione' : 'Mostra la soluzione completa';
     });
-  }
+  });
 
-  // wiring: animazione + controlli (istanza creata, avviata solo nella sotto-scheda Simulazioni)
-  if (s.anim) {
-    const canvas = sec.querySelector('#cv-' + s.id);
-    const inst = Animations[s.anim](canvas);
-    animInstances[s.id] = inst;
-    if (inst.controls) sec.querySelector('#ctrl-' + s.id).appendChild(inst.controls);
+  // wiring: animazioni + controlli (istanze create, avviate solo nella sotto-scheda Simulazioni)
+  if (simList.length) {
+    animInstances[s.id] = simList.map((sim, idx) => {
+      const canvas = sec.querySelector(`#cv-${s.id}-${idx}`);
+      const inst = Animations[sim.anim](canvas);
+      if (inst.controls) sec.querySelector(`#ctrl-${s.id}-${idx}`).appendChild(inst.controls);
+      return inst;
+    });
   }
 
   // quiz
@@ -1808,13 +2020,13 @@ function showQuizDone(s) {
 /* ============================================================
    NAVIGAZIONE + PROGRESSO GLOBALE
    ============================================================ */
-function startAnim(inst) {
-  stopRunningAnim();
-  if (!inst) return;
-  runningAnim = inst;
-  requestAnimationFrame(() => { inst.resize(); inst.start(); });
+function startAnims(list) {
+  stopRunningAnims();
+  if (!list || !list.length) return;
+  runningAnims = list;
+  list.forEach(inst => requestAnimationFrame(() => { inst.resize(); inst.start(); }));
 }
-function stopRunningAnim() { if (runningAnim) { runningAnim.stop(); runningAnim = null; } }
+function stopRunningAnims() { runningAnims.forEach(inst => inst.stop()); runningAnims = []; }
 
 function resetSubtabs(sec) {
   if (!sec) return;
@@ -1827,7 +2039,7 @@ function resetSubtabs(sec) {
 
 function goTo(i) {
   if (i < 0 || i >= SECTIONS.length) return;
-  stopRunningAnim(); // ogni modulo si apre sulla Teoria: nessuna animazione in corso
+  stopRunningAnims(); // ogni modulo si apre sulla Teoria: nessuna animazione in corso
   currentIndex = i;
   const secs = [...document.querySelectorAll('.section')];
   secs.forEach((el, k) => el.classList.toggle('active', k === i));
@@ -1881,7 +2093,7 @@ function init() {
 let resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => { if (runningAnim) runningAnim.resize(); }, 180);
+  resizeTimer = setTimeout(() => { runningAnims.forEach(a => a.resize()); }, 180);
 });
 
 init();

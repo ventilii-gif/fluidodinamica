@@ -23,15 +23,15 @@ L'app è organizzata a **schede (moduli)** nella barra in alto, con tono rassicu
 Dentro ogni scheda-modulo ci sono **quattro sotto-schede** dedicate:
 
 - 📖 **Teoria** — le idee spiegate con parole semplici
-- 🎬 **Simulazioni** — animazioni interattive (Canvas) con cursori da muovere
-- ✏️ **Esercizi** — un esercizio svolto **passo passo**, con **suggerimenti progressivi**
+- 🎬 **Simulazioni** — una o più animazioni interattive (Canvas) con cursori da muovere
+- ✏️ **Esercizi** — **5 esercizi** svolti **passo passo**, con **suggerimenti progressivi** e **formule inverse**
 - 🎯 **Quiz** — 15 domande per modulo (**10 di teoria + 5 numeriche**), con le risposte in **posizione casuale** e feedback incoraggiante
 
 ### 🧮 Risolutore di problemi
 Scheda dedicata dove lo studente sceglie il tipo di problema (continuità, Bernoulli,
-Torricelli, Stevino, Archimede, galleggiamento, Reynolds), indica **cosa calcolare**,
-inserisce i propri dati e ottiene **sia il metodo passo passo sia il risultato numerico**.
-Può anche scrivere la propria risposta e verificare se è corretta.
+Torricelli, Stevino, Archimede, galleggiamento, **torchio idraulico**, **tubo a U**, Reynolds),
+indica **cosa calcolare** (incluse le **formule inverse**), inserisce i propri dati e ottiene
+**sia il metodo passo passo sia il risultato numerico**. Può anche scrivere la propria risposta e verificare se è corretta.
 
 Altre caratteristiche:
 

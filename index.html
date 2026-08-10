@@ -882,6 +882,191 @@ Animations.reynolds = function (canvas) {
   };
 };
 
+/* ---- 3b. PORTANZA DELL'ALA (Bernoulli) ---- */
+Animations.airfoil = function (canvas) {
+  let raf, dims, running = false, t = 0, spd = 1;
+  const dots = [];
+  function wingY(x, cx, chord, cyc, thick) { // profilo dell'ala: metà spessore superiore/inferiore
+    const u = (x - (cx - chord / 2)) / chord; // 0..1
+    if (u < 0 || u > 1) return null;
+    const camber = Math.sin(u * Math.PI);
+    return { top: cyc - thick * camber, bot: cyc + thick * 0.35 * camber };
+  }
+  function init() { dots.length = 0; for (let i = 0; i < 90; i++) dots.push({ x: Math.random(), lane: Math.floor(Math.random() * 7) }); }
+  function frame() {
+    if (!running) return;
+    const { ctx, w, h } = dims; t += 0.016;
+    ctx.clearRect(0, 0, w, h);
+    const cx = w * 0.5, chord = w * 0.44, cyc = h * 0.56, thick = h * 0.14;
+    // ala
+    ctx.beginPath();
+    for (let px = cx - chord / 2; px <= cx + chord / 2; px += 4) { const y = wingY(px, cx, chord, cyc, thick); if (y) (px === cx - chord / 2 ? ctx.moveTo : ctx.lineTo).call(ctx, px, y.top); }
+    for (let px = cx + chord / 2; px >= cx - chord / 2; px -= 4) { const y = wingY(px, cx, chord, cyc, thick); if (y) ctx.lineTo(px, y.bot); }
+    ctx.closePath(); ctx.fillStyle = PAL.textSoft; ctx.fill();
+    // linee di corrente (7 corsie)
+    const lanes = [-3, -2, -1, 0, 1, 2, 3];
+    lanes.forEach((k) => {
+      const baseY = cyc + k * (thick * 0.9);
+      ctx.beginPath();
+      for (let px = 0; px <= w; px += 6) {
+        const near = Math.exp(-Math.pow((px - cx) / (chord * 0.55), 2));
+        const bend = (k <= 0 ? -1 : 1) * near * thick * (k <= 0 ? 1.0 : 0.4);
+        const y = baseY + bend;
+        px === 0 ? ctx.moveTo(px, y) : ctx.lineTo(px, y);
+      }
+      ctx.strokeStyle = PAL.border; ctx.lineWidth = 1.3; ctx.stroke();
+    });
+    // pallini (più veloci sopra l'ala)
+    for (const d of dots) {
+      const k = lanes[d.lane];
+      const fast = k <= 0 ? 1.7 : 1.0;
+      d.x += (0.0026 * spd) * fast;
+      if (d.x > 1) { d.x -= 1; }
+      const px = d.x * w;
+      const near = Math.exp(-Math.pow((px - cx) / (chord * 0.55), 2));
+      const bend = (k <= 0 ? -1 : 1) * near * thick * (k <= 0 ? 1.0 : 0.4);
+      const py = cyc + k * (thick * 0.9) + bend;
+      ctx.beginPath(); ctx.arc(px, py, 3, 0, 7); ctx.fillStyle = k <= 0 ? PAL.accent : PAL.water; ctx.fill();
+    }
+    // freccia portanza
+    ctx.strokeStyle = PAL.good; ctx.fillStyle = PAL.good; ctx.lineWidth = 3;
+    const lift = 30 + spd * 26;
+    ctx.beginPath(); ctx.moveTo(cx, cyc - thick - 6); ctx.lineTo(cx, cyc - thick - 6 - lift); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cyc - thick - 6 - lift); ctx.lineTo(cx - 6, cyc - thick - 6 - lift + 11); ctx.lineTo(cx + 6, cyc - thick - 6 - lift + 11); ctx.closePath(); ctx.fill();
+    ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('PORTANZA', cx + 62, cyc - thick - lift + 4);
+    ctx.fillStyle = PAL.accent; ctx.font = '12px sans-serif';
+    ctx.fillText('sopra: aria più veloce → pressione minore', cx, h * 0.12);
+    ctx.fillStyle = PAL.textSoft;
+    ctx.fillText('sotto: aria più lenta → pressione maggiore', cx, h * 0.95);
+    ctx.textAlign = 'left';
+    raf = requestAnimationFrame(frame);
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'controls';
+  wrap.innerHTML = `<div class="ctrl">
+    <label>Velocità dell'aria <b id="af-v">bassa</b></label>
+    <input type="range" id="af-range" min="1" max="3" step="1" value="1"></div>`;
+  wrap.querySelector('#af-range').addEventListener('input', e => { spd = +e.target.value; wrap.querySelector('#af-v').textContent = spd === 1 ? 'bassa' : spd === 2 ? 'media' : 'alta'; });
+  return {
+    controls: wrap,
+    start() { dims = setupCanvas(canvas, 2.4); if (!dots.length) init(); running = true; frame(); },
+    stop() { running = false; cancelAnimationFrame(raf); },
+    resize() { if (running) dims = setupCanvas(canvas, 2.4); }
+  };
+};
+
+/* ---- 4b. EFFETTO VENTURI con aspirazione (Applicazioni) ---- */
+Animations.venturi = function (canvas) {
+  let raf, dims, running = false; let flow = 0.6;
+  const parts = [];
+  function half(x, H) {
+    const wide = H * 0.26, cx = 0.5, span = 0.13, narrow = 0.4;
+    let f; if (x < cx - span) f = 1; else if (x > cx + span) f = 1; else { const u = (x - (cx - span)) / (2 * span); f = 1 + (narrow - 1) * Math.sin(u * Math.PI); }
+    return wide * f;
+  }
+  function speedAt(x) { return (0.0016 + flow * 0.0030) / (half(x, 1) / (1 * 0.26)); }
+  function init() { parts.length = 0; for (let k = 0; k < 70; k++) parts.push({ x: Math.random(), yr: (Math.random() * 2 - 1) * 0.8 }); }
+  function frame() {
+    if (!running) return;
+    const { ctx, w, h } = dims; const midY = h * 0.42;
+    ctx.clearRect(0, 0, w, h);
+    // condotto
+    ctx.beginPath();
+    for (let i = 0; i <= 100; i++) { const x = i / 100; (i === 0 ? ctx.moveTo : ctx.lineTo).call(ctx, x * w, midY - half(x, h)); }
+    for (let i = 100; i >= 0; i--) { const x = i / 100; ctx.lineTo(x * w, midY + half(x, h)); }
+    ctx.closePath(); ctx.fillStyle = PAL.card2; ctx.fill();
+    ctx.strokeStyle = PAL.accent; ctx.lineWidth = 2.4; ctx.stroke();
+    // pallini
+    for (const p of parts) { p.x += speedAt(p.x); if (p.x > 1) { p.x -= 1; p.yr = (Math.random() * 2 - 1) * 0.8; } const hh = half(p.x, h); ctx.beginPath(); ctx.arc(p.x * w, midY + p.yr * hh, 3, 0, 7); ctx.fillStyle = PAL.particle; ctx.fill(); }
+    // tubicino di aspirazione nella strozzatura
+    const throatX = 0.5 * w, throatBot = midY + half(0.5, h);
+    const resY = h * 0.90, resTop = h * 0.72;
+    ctx.strokeStyle = PAL.textSoft; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(throatX, throatBot); ctx.lineTo(throatX, resY); ctx.stroke();
+    // serbatoio di liquido in basso
+    ctx.fillStyle = PAL.water; ctx.globalAlpha = .5; ctx.fillRect(w * 0.36, resTop, w * 0.28, resY - resTop); ctx.globalAlpha = 1;
+    ctx.strokeStyle = PAL.accent2; ctx.lineWidth = 2; ctx.strokeRect(w * 0.36, resTop, w * 0.28, resY - resTop);
+    // colonna che sale nel tubicino ∝ depressione (∝ flow²)
+    const rise = (throatBot < resTop ? 0 : (resY - throatBot)) * Math.min(1, flow * flow * 1.4);
+    ctx.strokeStyle = PAL.water; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(throatX, resY); ctx.lineTo(throatX, resY - rise); ctx.stroke();
+    // etichette
+    ctx.fillStyle = PAL.text; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('strozzatura: v alta, p bassa', throatX, midY - half(0.5, h) - 10);
+    ctx.fillStyle = PAL.accent2; ctx.font = '12px sans-serif';
+    ctx.fillText('la depressione aspira il liquido ↑', throatX, resY + h * 0.06);
+    ctx.textAlign = 'left';
+    raf = requestAnimationFrame(frame);
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'controls';
+  wrap.innerHTML = `<div class="ctrl">
+    <label>Velocità del flusso principale <b id="ve-v">media</b></label>
+    <input type="range" id="ve-range" min="20" max="100" step="5" value="60"></div>`;
+  wrap.querySelector('#ve-range').addEventListener('input', e => { flow = (+e.target.value) / 100; wrap.querySelector('#ve-v').textContent = flow < 0.45 ? 'bassa' : flow < 0.75 ? 'media' : 'alta'; });
+  return {
+    controls: wrap,
+    start() { dims = setupCanvas(canvas, 2.2); if (!parts.length) init(); running = true; frame(); },
+    stop() { running = false; cancelAnimationFrame(raf); },
+    resize() { if (running) dims = setupCanvas(canvas, 2.2); }
+  };
+};
+
+/* ---- 5b. PROFILO DI VELOCITÀ (Reynolds) ---- */
+Animations.velprofile = function (canvas) {
+  let raf, dims, running = false, t = 0, Re = 800;
+  const N = 11, parts = [];
+  function prof(yr) { // yr in [-1,1] → fattore di velocità [0..1]
+    const turb = Math.max(0, Math.min(1, (Re - 2000) / 2500));
+    const lam = 1 - yr * yr;
+    const plug = Math.pow(Math.max(0, 1 - Math.abs(yr)), 0.16);
+    return (1 - turb) * lam + turb * plug;
+  }
+  function init() { parts.length = 0; for (let i = 0; i < N; i++) for (let k = 0; k < 5; k++) parts.push({ yr: -1 + 2 * (i + 0.5) / N, x: Math.random() }); }
+  function frame() {
+    if (!running) return;
+    const { ctx, w, h } = dims; t += 0.016;
+    ctx.clearRect(0, 0, w, h);
+    const pipeTop = h * 0.20, pipeBot = h * 0.80, midY = (pipeTop + pipeBot) / 2, R = (pipeBot - pipeTop) / 2;
+    // pareti
+    ctx.strokeStyle = PAL.border; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, pipeTop); ctx.lineTo(w, pipeTop); ctx.moveTo(0, pipeBot); ctx.lineTo(w, pipeBot); ctx.stroke();
+    // profilo (frecce) a sinistra
+    const x0 = w * 0.10, scale = w * 0.30;
+    ctx.strokeStyle = PAL.accent2; ctx.fillStyle = PAL.accent2; ctx.lineWidth = 2;
+    for (let i = 0; i <= N; i++) {
+      const yr = -1 + 2 * i / N; const y = midY + yr * R; const len = prof(yr) * scale;
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + len, y); ctx.stroke();
+      if (len > 8) { ctx.beginPath(); ctx.moveTo(x0 + len, y); ctx.lineTo(x0 + len - 7, y - 3.5); ctx.lineTo(x0 + len - 7, y + 3.5); ctx.closePath(); ctx.fill(); }
+    }
+    // curva inviluppo del profilo
+    ctx.strokeStyle = PAL.accent; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 40; i++) { const yr = -1 + 2 * i / 40; const y = midY + yr * R; const len = prof(yr) * scale; (i === 0 ? ctx.moveTo : ctx.lineTo).call(ctx, x0 + len, y); }
+    ctx.stroke();
+    // pallini che scorrono a destra con velocità locale
+    for (const p of parts) { p.x += 0.002 + prof(p.yr) * 0.010 * (0.6 + Re / 4000); if (p.x > 1) p.x -= 1; const px = x0 + scale + 20 + p.x * (w - x0 - scale - 30); const py = midY + p.yr * R; ctx.beginPath(); ctx.arc(px, py, 2.8, 0, 7); ctx.fillStyle = PAL.particle; ctx.fill(); }
+    const turb = Re >= 2500;
+    ctx.fillStyle = turb ? PAL.warn : PAL.accent2; ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(turb ? 'Profilo TURBOLENTO (più piatto)' : 'Profilo LAMINARE (parabolico)', w / 2, h * 0.13);
+    ctx.textAlign = 'left';
+    raf = requestAnimationFrame(frame);
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'controls';
+  wrap.innerHTML = `<div class="ctrl">
+    <label>Numero di Reynolds Re <b id="vp-val">800</b></label>
+    <input type="range" id="vp-range" min="200" max="4500" step="50" value="800"></div>`;
+  wrap.querySelector('#vp-range').addEventListener('input', e => { Re = +e.target.value; wrap.querySelector('#vp-val').textContent = Re; });
+  return {
+    controls: wrap,
+    start() { dims = setupCanvas(canvas, 2.6); if (!parts.length) init(); running = true; frame(); },
+    stop() { running = false; cancelAnimationFrame(raf); },
+    resize() { if (running) dims = setupCanvas(canvas, 2.6); }
+  };
+};
+
 /* ============================================================
    CONTENUTI DELLE SEZIONI
    ============================================================ */
@@ -1140,24 +1325,80 @@ const SECTIONS = [
         Ecco perché il pollice sul tubo accelera l'acqua! Prova tu stesso a stringere il condotto qui sotto.</div>
     `,
     anim: 'continuity', animCaption: 'Sposta il cursore: restringendo A₂ le particelle nella strozzatura accelerano visibilmente.',
-    example: {
-      title: 'Un tubo che si restringe',
-      body: `<p>In un tubo l'acqua scorre con velocità <span class="mono">v₁ = 1,5 m/s</span> in una sezione
-        <span class="mono">A₁ = 20 cm²</span>. Il tubo poi si restringe a <span class="mono">A₂ = 5 cm²</span>.
-        <b>Quanto vale la velocità v₂ nella strozzatura?</b></p>`,
-      hints: [
-        'Cosa si conserva quando un tubo si restringe? La portata Q = A·v.',
-        'Scrivi l\'equazione di continuità A₁·v₁ = A₂·v₂ e isola l\'incognita: v₂ = (A₁·v₁) / A₂.',
-        'Le due aree sono in rapporto, quindi puoi lasciarle in cm²: si semplificano.'
-      ],
-      steps: [
-        'Uso l\'equazione di continuità: <span class="mono">A₁·v₁ = A₂·v₂</span>.',
-        'Isolo l\'incognita: <span class="mono">v₂ = (A₁·v₁) / A₂</span>.',
-        'Le aree stanno in un rapporto, quindi le unità cm² si semplificano: <span class="mono">v₂ = (20 · 1,5) / 5</span>.',
-        'Calcolo: <span class="mono">v₂ = 30 / 5 = 6 m/s</span>.'
-      ],
-      result: 'v₂ = 6 m/s — la velocità è quadruplicata perché l\'area è diventata un quarto. Coerente con l\'intuizione! ✅'
-    },
+    exercises: [
+      { title: 'Un tubo che si restringe', tag: 'continuità',
+        body: `<p>In un tubo l'acqua scorre con velocità <span class="mono">v₁ = 1,5 m/s</span> in una sezione
+          <span class="mono">A₁ = 20 cm²</span>. Il tubo poi si restringe a <span class="mono">A₂ = 5 cm²</span>.
+          <b>Quanto vale la velocità v₂ nella strozzatura?</b></p>`,
+        hints: [
+          'Cosa si conserva quando un tubo si restringe? La portata Q = A·v.',
+          "Scrivi l'equazione di continuità A₁·v₁ = A₂·v₂ e isola l'incognita: v₂ = (A₁·v₁) / A₂.",
+          'Le due aree sono in rapporto, quindi puoi lasciarle in cm²: si semplificano.'
+        ],
+        steps: [
+          "Uso l'equazione di continuità: <span class=\"mono\">A₁·v₁ = A₂·v₂</span>.",
+          "Isolo l'incognita: <span class=\"mono\">v₂ = (A₁·v₁) / A₂</span>.",
+          'Le aree stanno in un rapporto, quindi le unità cm² si semplificano: <span class="mono">v₂ = (20 · 1,5) / 5</span>.',
+          'Calcolo: <span class="mono">v₂ = 30 / 5 = 6 m/s</span>.'
+        ],
+        result: "v₂ = 6 m/s — la velocità è quadruplicata perché l'area è diventata un quarto. Coerente con l'intuizione! ✅" },
+      { title: 'Quale sezione serve? (formula inversa)', tag: 'formula inversa',
+        body: `<p>In un tubo l'acqua entra con <span class="mono">v₁ = 2 m/s</span> in una sezione <span class="mono">A₁ = 15 cm²</span>.
+          Vuoi che nella strozzatura la velocità sia <span class="mono">v₂ = 6 m/s</span>. Quale area <span class="mono">A₂</span> serve?</p>`,
+        hints: [
+          "Parti dall'equazione di continuità A₁·v₁ = A₂·v₂.",
+          'Isola A₂: A₂ = (A₁·v₁) / v₂.'
+        ],
+        steps: [
+          'Continuità: <span class="mono">A₁·v₁ = A₂·v₂</span>.',
+          'Isolo A₂: <span class="mono">A₂ = (A₁·v₁) / v₂</span>.',
+          'Sostituisco: <span class="mono">A₂ = (15 · 2) / 6</span>.',
+          'Calcolo: <span class="mono">A₂ = 30 / 6 = 5 cm²</span>.'
+        ],
+        result: 'A₂ = 5 cm². ✅' },
+      { title: 'La portata di un rubinetto', tag: 'portata',
+        body: `<p>Da un rubinetto di sezione <span class="mono">A = 2 cm² = 2·10⁻⁴ m²</span> l'acqua esce a
+          <span class="mono">v = 1,5 m/s</span>. Quanto vale la portata <span class="mono">Q</span> (in m³/s e in L/s)?</p>`,
+        hints: [
+          'La portata è Q = A·v.',
+          'Ricorda che 1 m³ = 1000 L per la conversione finale.'
+        ],
+        steps: [
+          'Uso la definizione: <span class="mono">Q = A·v</span>.',
+          'Sostituisco: <span class="mono">Q = 2·10⁻⁴ · 1,5</span>.',
+          'Calcolo: <span class="mono">Q = 3·10⁻⁴ m³/s</span>.',
+          'Converto: <span class="mono">3·10⁻⁴ m³/s = 0,3 L/s</span>.'
+        ],
+        result: 'Q = 3·10⁻⁴ m³/s = 0,3 L/s. ✅' },
+      { title: 'Dalla portata alla velocità (formula inversa)', tag: 'formula inversa',
+        body: `<p>In un tubo di sezione <span class="mono">A = 6·10⁻⁴ m²</span> scorre una portata
+          <span class="mono">Q = 1,2·10⁻³ m³/s</span>. Qual è la velocità <span class="mono">v</span> del fluido?</p>`,
+        hints: [
+          'Parti da Q = A·v.',
+          'Isola v dividendo per l\'area: v = Q / A.'
+        ],
+        steps: [
+          'Parto da <span class="mono">Q = A·v</span>.',
+          'Isolo v: <span class="mono">v = Q / A</span>.',
+          'Sostituisco: <span class="mono">v = 1,2·10⁻³ / 6·10⁻⁴</span>.',
+          'Calcolo: <span class="mono">v = 2 m/s</span>.'
+        ],
+        result: 'v = 2 m/s. ✅' },
+      { title: 'Trovare la velocità di ingresso (formula inversa)', tag: 'formula inversa',
+        body: `<p>Nella parte larga di un tubo (<span class="mono">A₁ = 20 cm²</span>) la velocità è incognita; nella strozzatura
+          (<span class="mono">A₂ = 5 cm²</span>) l'acqua va a <span class="mono">v₂ = 6 m/s</span>. Quanto vale <span class="mono">v₁</span>?</p>`,
+        hints: [
+          'Continuità: A₁·v₁ = A₂·v₂.',
+          'Isola v₁: v₁ = (A₂·v₂) / A₁.'
+        ],
+        steps: [
+          'Continuità: <span class="mono">A₁·v₁ = A₂·v₂</span>.',
+          'Isolo v₁: <span class="mono">v₁ = (A₂·v₂) / A₁</span>.',
+          'Sostituisco: <span class="mono">v₁ = (5 · 6) / 20</span>.',
+          'Calcolo: <span class="mono">v₁ = 30 / 20 = 1,5 m/s</span>.'
+        ],
+        result: 'v₁ = 1,5 m/s. ✅' }
+    ],
     quiz: [
       { q: "L'equazione di continuità per un fluido incomprimibile afferma che...",
         opts: ["A₁·v₁ = A₂·v₂", "A₁ + v₁ = A₂ + v₂", "v₁/A₁ = v₂/A₂", "A₁·A₂ = v₁·v₂"],
@@ -1235,26 +1476,85 @@ const SECTIONS = [
         Dove il fluido è più <b>veloce</b>, la pressione è più <b>bassa</b>. Sembra strano, ma è pura conservazione
         dell'energia: se cresce l'energia cinetica, deve calare quella di pressione. Osservalo nei manometri dell'animazione.</div>
     `,
-    anim: 'bernoulli', animCaption: 'Nella strozzatura la velocità cresce e la colonnina di pressione si abbassa: p e v vanno in senso opposto.',
-    example: {
-      title: 'Pressione nella strozzatura',
-      body: `<p>Riprendiamo il tubo <b>orizzontale</b> di prima: <span class="mono">v₁ = 1,5 m/s</span> nella sezione larga
-        e <span class="mono">v₂ = 6 m/s</span> nella strozzatura (acqua, <span class="mono">ρ = 1000 kg/m³</span>).
-        <b>Di quanto cala la pressione</b> passando dalla sezione larga a quella stretta?</p>`,
-      hints: [
-        'Il tubo è orizzontale: il termine ρgh è uguale ai due lati e si semplifica. Resta p + ½ρv² costante.',
-        'Riordina per la differenza di pressione: p₁ − p₂ = ½·ρ·(v₂² − v₁²).',
-        'Attento all\'ordine: la pressione è più alta dove la velocità è più bassa (sezione larga).'
-      ],
-      steps: [
-        'Tubo orizzontale → uso <span class="mono">p₁ + ½ρv₁² = p₂ + ½ρv₂²</span>.',
-        'Riordino per la differenza di pressione: <span class="mono">p₁ − p₂ = ½ρ(v₂² − v₁²)</span>.',
-        'Sostituisco: <span class="mono">= ½ · 1000 · (6² − 1,5²)</span>.',
-        'Calcolo la parentesi: <span class="mono">6² − 1,5² = 36 − 2,25 = 33,75</span>.',
-        'Quindi: <span class="mono">p₁ − p₂ = 500 · 33,75 = 16 875 Pa</span>.'
-      ],
-      result: 'La pressione cala di circa 16,9 kPa: dove l\'acqua corre più veloce, "spinge" di meno sulle pareti. ✅'
-    },
+    sims: [
+      { anim: 'bernoulli', title: 'Pressione e velocità', caption: 'Nella strozzatura la velocità cresce e la colonnina di pressione si abbassa: p e v vanno in senso opposto.' },
+      { anim: 'airfoil', title: 'Portanza dell\'ala', caption: "L'aria scorre più veloce sopra l'ala che sotto: sopra la pressione è minore, e la differenza genera la portanza verso l'alto." }
+    ],
+    exercises: [
+      { title: 'Pressione nella strozzatura', tag: 'Bernoulli',
+        body: `<p>Riprendiamo il tubo <b>orizzontale</b> di prima: <span class="mono">v₁ = 1,5 m/s</span> nella sezione larga
+          e <span class="mono">v₂ = 6 m/s</span> nella strozzatura (acqua, <span class="mono">ρ = 1000 kg/m³</span>).
+          <b>Di quanto cala la pressione</b> passando dalla sezione larga a quella stretta?</p>`,
+        hints: [
+          'Il tubo è orizzontale: il termine ρgh è uguale ai due lati e si semplifica. Resta p + ½ρv² costante.',
+          'Riordina per la differenza di pressione: p₁ − p₂ = ½·ρ·(v₂² − v₁²).',
+          "Attento all'ordine: la pressione è più alta dove la velocità è più bassa (sezione larga)."
+        ],
+        steps: [
+          'Tubo orizzontale → uso <span class="mono">p₁ + ½ρv₁² = p₂ + ½ρv₂²</span>.',
+          'Riordino per la differenza di pressione: <span class="mono">p₁ − p₂ = ½ρ(v₂² − v₁²)</span>.',
+          'Sostituisco: <span class="mono">= ½ · 1000 · (6² − 1,5²)</span>.',
+          'Calcolo la parentesi: <span class="mono">6² − 1,5² = 36 − 2,25 = 33,75</span>.',
+          'Quindi: <span class="mono">p₁ − p₂ = 500 · 33,75 = 16 875 Pa</span>.'
+        ],
+        result: 'La pressione cala di circa 16,9 kPa: dove l\'acqua corre più veloce, "spinge" di meno sulle pareti. ✅' },
+      { title: 'Trovare la velocità dalla caduta di pressione (formula inversa)', tag: 'formula inversa',
+        body: `<p>Tubo orizzontale, acqua (<span class="mono">ρ = 1000 kg/m³</span>). Nella sezione larga <span class="mono">v₁ = 2 m/s</span>;
+          tra le due sezioni la pressione cala di <span class="mono">Δp = p₁ − p₂ = 10 500 Pa</span>. Quanto vale <span class="mono">v₂</span>?</p>`,
+        hints: [
+          'Parti da p₁ − p₂ = ½ρ(v₂² − v₁²).',
+          'Isola v₂: v₂ = √( v₁² + 2·Δp/ρ ).'
+        ],
+        steps: [
+          'Parto da <span class="mono">p₁ − p₂ = ½ρ(v₂² − v₁²)</span>.',
+          'Isolo v₂: <span class="mono">v₂ = √( v₁² + 2·Δp/ρ )</span>.',
+          'Sostituisco: <span class="mono">v₂ = √( 2² + 2·10 500/1000 )</span>.',
+          'Calcolo: <span class="mono">v₂ = √(4 + 21) = √25 = 5 m/s</span>.'
+        ],
+        result: 'v₂ = 5 m/s. ✅' },
+      { title: 'La pressione nella strozzatura (valore assoluto)', tag: 'Bernoulli',
+        body: `<p>Tubo orizzontale, acqua (<span class="mono">ρ = 1000 kg/m³</span>). Nella sezione larga <span class="mono">p₁ = 200 000 Pa</span>
+          e <span class="mono">v₁ = 2 m/s</span>; nella strozzatura <span class="mono">v₂ = 6 m/s</span>. Quanto vale <span class="mono">p₂</span>?</p>`,
+        hints: [
+          'Bernoulli orizzontale: p₁ + ½ρv₁² = p₂ + ½ρv₂².',
+          'Isola p₂: p₂ = p₁ − ½ρ(v₂² − v₁²).'
+        ],
+        steps: [
+          'Bernoulli orizzontale: <span class="mono">p₁ + ½ρv₁² = p₂ + ½ρv₂²</span>.',
+          'Isolo p₂: <span class="mono">p₂ = p₁ − ½ρ(v₂² − v₁²)</span>.',
+          'Sostituisco: <span class="mono">p₂ = 200 000 − ½·1000·(36 − 4)</span>.',
+          'Calcolo: <span class="mono">p₂ = 200 000 − 16 000 = 184 000 Pa</span>.'
+        ],
+        result: 'p₂ = 184 000 Pa: nella strozzatura la pressione è più bassa. ✅' },
+      { title: 'Dal termine cinetico alla velocità (formula inversa)', tag: 'formula inversa',
+        body: `<p>Per l'acqua (<span class="mono">ρ = 1000 kg/m³</span>) il termine cinetico vale <span class="mono">½ρv² = 8 000 Pa</span>.
+          A quale velocità <span class="mono">v</span> corrisponde?</p>`,
+        hints: [
+          'Parti da ½ρv² = 8 000.',
+          'Isola v: v = √( 2 · (½ρv²) / ρ ).'
+        ],
+        steps: [
+          'Parto da <span class="mono">½ρv² = 8 000</span>.',
+          'Isolo v: <span class="mono">v = √( 2 · 8 000 / ρ )</span>.',
+          'Sostituisco: <span class="mono">v = √( 16 000 / 1000 )</span>.',
+          'Calcolo: <span class="mono">v = √16 = 4 m/s</span>.'
+        ],
+        result: 'v = 4 m/s. ✅' },
+      { title: 'Trovare la velocità di ingresso (formula inversa)', tag: 'formula inversa',
+        body: `<p>Tubo orizzontale, acqua (<span class="mono">ρ = 1000 kg/m³</span>). Nella strozzatura <span class="mono">v₂ = 4 m/s</span>
+          e la pressione cala di <span class="mono">Δp = 7 500 Pa</span>. Quanto vale <span class="mono">v₁</span> nella sezione larga?</p>`,
+        hints: [
+          'Parti da Δp = ½ρ(v₂² − v₁²).',
+          'Isola v₁: v₁ = √( v₂² − 2·Δp/ρ ).'
+        ],
+        steps: [
+          'Parto da <span class="mono">Δp = ½ρ(v₂² − v₁²)</span>.',
+          'Isolo v₁: <span class="mono">v₁ = √( v₂² − 2·Δp/ρ )</span>.',
+          'Sostituisco: <span class="mono">v₁ = √( 16 − 2·7 500/1000 )</span>.',
+          'Calcolo: <span class="mono">v₁ = √(16 − 15) = √1 = 1 m/s</span>.'
+        ],
+        result: 'v₁ = 1 m/s. ✅' }
+    ],
     quiz: [
       { q: "L'equazione di Bernoulli è, in sostanza, l'espressione della...",
         opts: ["conservazione dell'energia lungo una linea di corrente", "conservazione della massa", "legge di Ohm", "dilatazione termica"],
@@ -1334,24 +1634,83 @@ const SECTIONS = [
         Venturi, Torricelli, Pitot e portanza sembrano fenomeni diversi, ma nascono tutti da Bernoulli. Riconoscere
         lo stesso principio in situazioni diverse è esattamente ciò che significa "capire la fisica". Ci sei quasi! 🙌</div>
     `,
-    anim: 'torricelli', animCaption: 'Abbassa il foro: h cresce, e con esso la velocità di uscita v = √(2gh). La gittata del getto aumenta.',
-    example: {
-      title: 'Il getto dal serbatoio (Torricelli)',
-      body: `<p>Un serbatoio aperto contiene acqua. A <span class="mono">h = 1,8 m</span> sotto il pelo libero c'è un
-        piccolo foro. <b>Con che velocità esce l'acqua?</b> (usa <span class="mono">g = 9,8 m/s²</span>)</p>`,
-      hints: [
-        'Quale teorema dà la velocità di uscita di un liquido da un foro? Quello di Torricelli.',
-        'Applica v = √(2·g·h): sostituisci g e h dentro la radice e poi estrai la radice quadrata.',
-        'Nota: il risultato non dipende né dalla densità né dalla larghezza del serbatoio.'
-      ],
-      steps: [
-        'Applico il teorema di Torricelli: <span class="mono">v = √(2·g·h)</span>.',
-        'Sostituisco i valori: <span class="mono">v = √(2 · 9,8 · 1,8)</span>.',
-        'Calcolo dentro la radice: <span class="mono">2 · 9,8 · 1,8 = 35,28</span>.',
-        'Estraggo la radice: <span class="mono">v = √35,28 ≈ 5,94 m/s</span>.'
-      ],
-      result: 'v ≈ 5,9 m/s — nota che non dipende dalla densità né dalla larghezza del serbatoio, solo dalla profondità h. ✅'
-    },
+    sims: [
+      { anim: 'torricelli', title: 'Teorema di Torricelli', caption: 'Abbassa il foro: h cresce, e con esso la velocità di uscita v = √(2gh). La gittata del getto aumenta.' },
+      { anim: 'venturi', title: 'Effetto Venturi', caption: 'Nella strozzatura la velocità aumenta e la pressione crolla: la depressione aspira il liquido dal tubicino (carburatori, vaporizzatori, trombe d\'acqua).' }
+    ],
+    exercises: [
+      { title: 'Il getto dal serbatoio (Torricelli)', tag: 'Torricelli',
+        body: `<p>Un serbatoio aperto contiene acqua. A <span class="mono">h = 1,8 m</span> sotto il pelo libero c'è un
+          piccolo foro. <b>Con che velocità esce l'acqua?</b> (usa <span class="mono">g = 9,8 m/s²</span>)</p>`,
+        hints: [
+          'Quale teorema dà la velocità di uscita di un liquido da un foro? Quello di Torricelli.',
+          'Applica v = √(2·g·h): sostituisci g e h dentro la radice e poi estrai la radice quadrata.',
+          'Nota: il risultato non dipende né dalla densità né dalla larghezza del serbatoio.'
+        ],
+        steps: [
+          'Applico il teorema di Torricelli: <span class="mono">v = √(2·g·h)</span>.',
+          'Sostituisco i valori: <span class="mono">v = √(2 · 9,8 · 1,8)</span>.',
+          'Calcolo dentro la radice: <span class="mono">2 · 9,8 · 1,8 = 35,28</span>.',
+          'Estraggo la radice: <span class="mono">v = √35,28 ≈ 5,94 m/s</span>.'
+        ],
+        result: 'v ≈ 5,9 m/s — dipende solo dalla profondità h. ✅' },
+      { title: 'A quale profondità è il foro? (formula inversa)', tag: 'formula inversa',
+        body: `<p>Da un foro l'acqua esce con velocità <span class="mono">v = 7 m/s</span>. A quale profondità <span class="mono">h</span>
+          sotto il pelo libero si trova il foro? (<span class="mono">g = 9,8 m/s²</span>)</p>`,
+        hints: [
+          'Parti da v = √(2·g·h).',
+          'Elevi al quadrato e isoli h: h = v² / (2·g).'
+        ],
+        steps: [
+          'Parto da <span class="mono">v = √(2·g·h)</span>.',
+          'Elevo al quadrato e isolo h: <span class="mono">h = v² / (2·g)</span>.',
+          'Sostituisco: <span class="mono">h = 7² / (2 · 9,8)</span>.',
+          'Calcolo: <span class="mono">h = 49 / 19,6 = 2,5 m</span>.'
+        ],
+        result: 'h = 2,5 m. ✅' },
+      { title: 'Un foro poco profondo', tag: 'Torricelli',
+        body: `<p>In una vasca il foro è a <span class="mono">h = 1,25 m</span> sotto il pelo libero.
+          Con quale velocità esce l'acqua? (<span class="mono">g = 9,8 m/s²</span>)</p>`,
+        hints: [
+          'Sempre Torricelli: v = √(2·g·h).',
+          'Calcola prima 2·g·h, poi la radice quadrata.'
+        ],
+        steps: [
+          'Torricelli: <span class="mono">v = √(2·g·h)</span>.',
+          'Sostituisco: <span class="mono">v = √(2 · 9,8 · 1,25)</span>.',
+          'Dentro la radice: <span class="mono">2 · 9,8 · 1,25 = 24,5</span>.',
+          'Estraggo la radice: <span class="mono">v = √24,5 ≈ 4,95 m/s</span>.'
+        ],
+        result: 'v ≈ 4,95 m/s. ✅' },
+      { title: 'Dal getto alla profondità (formula inversa)', tag: 'formula inversa',
+        body: `<p>Un getto esce da un foro con <span class="mono">v = 9,9 m/s</span>. A quale profondità
+          <span class="mono">h</span> si trova il foro? (<span class="mono">g = 9,8 m/s²</span>)</p>`,
+        hints: [
+          'Parti da v = √(2·g·h) e isola h.',
+          'h = v² / (2·g).'
+        ],
+        steps: [
+          'Parto da <span class="mono">v = √(2·g·h)</span>.',
+          'Isolo h: <span class="mono">h = v² / (2·g)</span>.',
+          'Sostituisco: <span class="mono">h = 9,9² / (2 · 9,8)</span>.',
+          'Calcolo: <span class="mono">h = 98,01 / 19,6 ≈ 5 m</span>.'
+        ],
+        result: 'h ≈ 5 m. ✅' },
+      { title: 'Un serbatoio profondo', tag: 'Torricelli',
+        body: `<p>Un serbatoio ha un foro a <span class="mono">h = 3,2 m</span> di profondità.
+          Con quale velocità esce l'acqua? (<span class="mono">g = 9,8 m/s²</span>)</p>`,
+        hints: [
+          'Torricelli: v = √(2·g·h).',
+          'Più profondo è il foro, più veloce esce il getto.'
+        ],
+        steps: [
+          'Torricelli: <span class="mono">v = √(2·g·h)</span>.',
+          'Sostituisco: <span class="mono">v = √(2 · 9,8 · 3,2)</span>.',
+          'Dentro la radice: <span class="mono">2 · 9,8 · 3,2 = 62,72</span>.',
+          'Estraggo la radice: <span class="mono">v = √62,72 ≈ 7,92 m/s</span>.'
+        ],
+        result: 'v ≈ 7,92 m/s. ✅' }
+    ],
     quiz: [
       { q: "Il teorema di Torricelli fornisce...",
         opts: ["la velocità di efflusso da un foro: v = √(2gh)", "la portata di un fiume", "la pressione atmosferica", "la densità di un liquido"],
@@ -1433,26 +1792,85 @@ const SECTIONS = [
         Re non ha unità di misura: lo stesso valore descrive l'acqua in un tubo, il sangue in un'arteria o l'aria attorno
         a un'ala. Muovi il cursore nell'animazione e osserva le linee passare da ordinate a caotiche.</div>
     `,
-    anim: 'reynolds', animCaption: 'Aumenta Re: sotto ~2000 il flusso è laminare e ordinato; oltre, compaiono i vortici della turbolenza.',
-    example: {
-      title: 'Laminare o turbolento?',
-      body: `<p>Acqua (<span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">η = 1,0·10⁻³ Pa·s</span>) scorre a
-        <span class="mono">v = 0,15 m/s</span> in un tubo di diametro <span class="mono">D = 2 cm = 0,02 m</span>.
-        <b>Il regime è laminare o turbolento?</b></p>`,
-      hints: [
-        'Quale numero, senza unità di misura, distingue il regime laminare da quello turbolento? Il numero di Reynolds.',
-        'Calcola Re = ρ·v·D / η sostituendo i valori.',
-        'Confronta il risultato con le soglie: Re < 2000 laminare, Re > ~2500 turbolento.'
-      ],
-      steps: [
-        'Uso la definizione: <span class="mono">Re = ρ·v·D / η</span>.',
-        'Sostituisco: <span class="mono">Re = (1000 · 0,15 · 0,02) / (1,0·10⁻³)</span>.',
-        'Numeratore: <span class="mono">1000 · 0,15 · 0,02 = 3</span>.',
-        'Divido: <span class="mono">Re = 3 / 0,001 = 3000</span>.',
-        'Confronto con le soglie: 3000 &gt; 2500.'
-      ],
-      result: 'Re ≈ 3000 → regime turbolento. Basterebbe rallentare il flusso per tornare laminare. ✅'
-    },
+    sims: [
+      { anim: 'reynolds', title: 'Laminare vs turbolento', caption: 'Aumenta Re: sotto ~2000 il flusso è laminare e ordinato; oltre, compaiono i vortici della turbolenza.' },
+      { anim: 'velprofile', title: 'Profilo di velocità', caption: 'Il profilo delle velocità nel tubo: parabolico nel regime laminare (massimo al centro), più piatto in quello turbolento.' }
+    ],
+    exercises: [
+      { title: 'Laminare o turbolento?', tag: 'Reynolds',
+        body: `<p>Acqua (<span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">η = 1,0·10⁻³ Pa·s</span>) scorre a
+          <span class="mono">v = 0,15 m/s</span> in un tubo di diametro <span class="mono">D = 2 cm = 0,02 m</span>.
+          <b>Il regime è laminare o turbolento?</b></p>`,
+        hints: [
+          'Quale numero, senza unità di misura, distingue il regime laminare da quello turbolento? Il numero di Reynolds.',
+          'Calcola Re = ρ·v·D / η sostituendo i valori.',
+          'Confronta il risultato con le soglie: Re < 2000 laminare, Re > ~2500 turbolento.'
+        ],
+        steps: [
+          'Uso la definizione: <span class="mono">Re = ρ·v·D / η</span>.',
+          'Sostituisco: <span class="mono">Re = (1000 · 0,15 · 0,02) / (1,0·10⁻³)</span>.',
+          'Numeratore: <span class="mono">1000 · 0,15 · 0,02 = 3</span>.',
+          'Divido: <span class="mono">Re = 3 / 0,001 = 3000</span>.',
+          'Confronto con le soglie: 3000 &gt; 2500.'
+        ],
+        result: 'Re ≈ 3000 → regime turbolento. ✅' },
+      { title: 'A quale velocità si passa a Re = 2000? (formula inversa)', tag: 'formula inversa',
+        body: `<p>Acqua (<span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">η = 1,0·10⁻³ Pa·s</span>) in un tubo
+          <span class="mono">D = 0,02 m</span>. A quale velocità <span class="mono">v</span> il numero di Reynolds vale <span class="mono">Re = 2000</span>?</p>`,
+        hints: [
+          'Parti da Re = ρ·v·D / η.',
+          'Isola v: v = Re·η / (ρ·D).'
+        ],
+        steps: [
+          'Parto da <span class="mono">Re = ρ·v·D / η</span>.',
+          'Isolo v: <span class="mono">v = Re·η / (ρ·D)</span>.',
+          'Sostituisco: <span class="mono">v = 2000 · 0,001 / (1000 · 0,02)</span>.',
+          'Calcolo: <span class="mono">v = 2 / 20 = 0,1 m/s</span>.'
+        ],
+        result: 'v = 0,1 m/s: oltre questa velocità il flusso tende a diventare turbolento. ✅' },
+      { title: 'Un flusso lento', tag: 'Reynolds',
+        body: `<p>Acqua (<span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">η = 1,0·10⁻³ Pa·s</span>) scorre a
+          <span class="mono">v = 0,05 m/s</span> in un tubo <span class="mono">D = 0,02 m</span>. Calcola Re e indica il regime.</p>`,
+        hints: [
+          'Usa Re = ρ·v·D / η.',
+          'Confronta con la soglia: Re < 2000 è laminare.'
+        ],
+        steps: [
+          'Definizione: <span class="mono">Re = ρ·v·D / η</span>.',
+          'Sostituisco: <span class="mono">Re = (1000 · 0,05 · 0,02) / 0,001</span>.',
+          'Numeratore: <span class="mono">1000 · 0,05 · 0,02 = 1</span>.',
+          'Divido: <span class="mono">Re = 1 / 0,001 = 1000</span>.'
+        ],
+        result: 'Re = 1000 → regime laminare (Re < 2000). ✅' },
+      { title: 'Quale diametro per Re = 2500? (formula inversa)', tag: 'formula inversa',
+        body: `<p>Acqua (<span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">η = 1,0·10⁻³ Pa·s</span>) scorre a
+          <span class="mono">v = 0,1 m/s</span>. Quale diametro <span class="mono">D</span> dà <span class="mono">Re = 2500</span>?</p>`,
+        hints: [
+          'Parti da Re = ρ·v·D / η.',
+          'Isola D: D = Re·η / (ρ·v).'
+        ],
+        steps: [
+          'Parto da <span class="mono">Re = ρ·v·D / η</span>.',
+          'Isolo D: <span class="mono">D = Re·η / (ρ·v)</span>.',
+          'Sostituisco: <span class="mono">D = 2500 · 0,001 / (1000 · 0,1)</span>.',
+          'Calcolo: <span class="mono">D = 2,5 / 100 = 0,025 m</span>.'
+        ],
+        result: 'D = 0,025 m (2,5 cm). ✅' },
+      { title: "Un fluido molto viscoso", tag: 'Reynolds',
+        body: `<p>Un olio (<span class="mono">ρ = 900 kg/m³</span>, <span class="mono">η = 0,09 Pa·s</span>) scorre a
+          <span class="mono">v = 0,3 m/s</span> in un tubo <span class="mono">D = 0,03 m</span>. Calcola Re e indica il regime.</p>`,
+        hints: [
+          'Usa Re = ρ·v·D / η. Qui η è grande (olio viscoso).',
+          'Una viscosità alta tende a mantenere il flusso ordinato (Re basso).'
+        ],
+        steps: [
+          'Definizione: <span class="mono">Re = ρ·v·D / η</span>.',
+          'Sostituisco: <span class="mono">Re = (900 · 0,3 · 0,03) / 0,09</span>.',
+          'Numeratore: <span class="mono">900 · 0,3 · 0,03 = 8,1</span>.',
+          'Divido: <span class="mono">Re = 8,1 / 0,09 = 90</span>.'
+        ],
+        result: 'Re = 90 → regime nettamente laminare: la forte viscosità domina. ✅' }
+    ],
     quiz: [
       { q: "La viscosità η di un fluido rappresenta...",
         opts: ["l'attrito interno tra i suoi strati", "la sua temperatura", "la sua velocità massima", "il suo volume"],
@@ -1683,6 +2101,32 @@ const PROBLEMS = [
     },
     targets: {
       esito: { lab: 'Esito: galleggia o affonda', unit: '', checkable: false, needs: ['rho_o', 'rho_f'], run: x => { const floats = x.rho_o < x.rho_f; const frac = floats ? x.rho_o / x.rho_f : 1; const rt = floats ? `Galleggia — frazione immersa ≈ ${pnum(frac * 100)}%` : 'Affonda'; return { value: null, resultText: rt, steps: ['Confronto le densità: se ρ_oggetto < ρ_fluido → galleggia; altrimenti affonda.', `Qui ρ_oggetto = ${pnum(x.rho_o)} kg/m³ e ρ_fluido = ${pnum(x.rho_f)} kg/m³.`, floats ? `ρ_oggetto < ρ_fluido → galleggia. Frazione immersa = ρ_oggetto/ρ_fluido = ${pnum(frac * 100)}%.` : 'ρ_oggetto ≥ ρ_fluido → il peso vince sulla spinta: affonda.'] }; } }
+    }
+  },
+  {
+    id: 'torchio', label: 'Torchio idraulico (Pascal)', formula: 'F₂ = F₁ · (A₂/A₁)',
+    vars: {
+      F1: { lab: 'F₁ — forza sul pistone piccolo', unit: 'N', ph: 'es. 40' },
+      ratio: { lab: 'A₂/A₁ — rapporto delle aree', unit: '(adim.)', ph: 'es. 8' },
+      F2: { lab: 'F₂ — forza sul pistone grande', unit: 'N', ph: 'es. 320' }
+    },
+    targets: {
+      F2: { lab: 'F₂ — forza sul pistone grande', unit: 'N', needs: ['F1', 'ratio'], run: x => { const r = x.F1 * x.ratio; return { value: r, resultText: `F₂ = ${pnum(r)} N`, steps: ['Stessa pressione sui due pistoni: F₁/A₁ = F₂/A₂', 'Isolo F₂: F₂ = F₁·(A₂/A₁)', `Sostituisco: F₂ = ${pnum(x.F1)}·${pnum(x.ratio)}`, `Calcolo: F₂ = ${pnum(r)} N`] }; } },
+      F1: { lab: 'F₁ — forza da applicare (inversa)', unit: 'N', needs: ['F2', 'ratio'], run: x => { const r = x.F2 / x.ratio; return { value: r, resultText: `F₁ = ${pnum(r)} N`, steps: ['Parto da F₂ = F₁·(A₂/A₁)', 'Isolo F₁: F₁ = F₂ / (A₂/A₁)', `Sostituisco: F₁ = ${pnum(x.F2)} / ${pnum(x.ratio)}`, `Calcolo: F₁ = ${pnum(r)} N`] }; } },
+      ratio: { lab: 'A₂/A₁ — rapporto delle aree (inversa)', unit: '(adim.)', needs: ['F2', 'F1'], run: x => { const r = x.F2 / x.F1; return { value: r, resultText: `A₂/A₁ = ${pnum(r)}`, steps: ['Parto da F₂ = F₁·(A₂/A₁)', 'Isolo il rapporto: A₂/A₁ = F₂/F₁', `Sostituisco: A₂/A₁ = ${pnum(x.F2)} / ${pnum(x.F1)}`, `Calcolo: A₂/A₁ = ${pnum(r)}`] }; } }
+    }
+  },
+  {
+    id: 'tuboU', label: 'Tubo a U (due liquidi immiscibili)', formula: 'ρ₁·h₁ = ρ₂·h₂',
+    vars: {
+      rho1: { lab: 'ρ₁ — densità liquido 1', unit: 'kg/m³', ph: 'es. 1000' },
+      h1: { lab: 'h₁ — altezza colonna 1', unit: 'm o cm', ph: 'es. 20' },
+      rho2: { lab: 'ρ₂ — densità liquido 2', unit: 'kg/m³', ph: 'es. 800' },
+      h2: { lab: 'h₂ — altezza colonna 2', unit: 'm o cm', ph: 'es. 25' }
+    },
+    targets: {
+      rho2: { lab: 'ρ₂ — densità del liquido 2', unit: 'kg/m³', needs: ['rho1', 'h1', 'h2'], run: x => { const r = x.rho1 * x.h1 / x.h2; return { value: r, resultText: `ρ₂ = ${pnum(r)} kg/m³`, steps: ["Equilibrio all'interfaccia: ρ₁·h₁ = ρ₂·h₂", 'Isolo ρ₂: ρ₂ = ρ₁·h₁ / h₂', `Sostituisco: ρ₂ = ${pnum(x.rho1)}·${pnum(x.h1)} / ${pnum(x.h2)}`, `Calcolo: ρ₂ = ${pnum(r)} kg/m³`] }; } },
+      h2: { lab: 'h₂ — altezza colonna 2 (inversa)', unit: 'm o cm', needs: ['rho1', 'h1', 'rho2'], run: x => { const r = x.rho1 * x.h1 / x.rho2; return { value: r, resultText: `h₂ = ${pnum(r)}`, steps: ['Parto da ρ₁·h₁ = ρ₂·h₂', 'Isolo h₂: h₂ = ρ₁·h₁ / ρ₂', `Sostituisco: h₂ = ${pnum(x.rho1)}·${pnum(x.h1)} / ${pnum(x.rho2)}`, `Calcolo: h₂ = ${pnum(r)} (stessa unità di h₁)`] }; } }
     }
   },
   {

@@ -259,6 +259,12 @@
   /* ===================== SUGGERIMENTI PROGRESSIVI ===================== */
   .hint { background: var(--accent-2-soft); border-left: 3px solid var(--accent-2); border-radius: 8px; padding: 10px 14px; margin: 8px 0; animation: fade .3s; }
   .eser-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .eser-verify { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 14px 0 2px; padding: 12px 14px; background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; }
+  .eser-verify label { font-size: .85rem; font-weight: 600; color: var(--text-soft); }
+  .eser-verify label .u { color: var(--accent); font-weight: 700; }
+  .eser-verify input { flex: 0 1 150px; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text); font-size: .95rem; font-family: inherit; }
+  .eser-verify input:focus { outline: none; border-color: var(--accent); }
+  .eser-verify .feedback { flex-basis: 100%; margin-top: 4px; }
 
   /* ===================== TIMELINE STORICA ===================== */
   .timeline { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
@@ -1182,7 +1188,7 @@ const SECTIONS = [
       { anim: 'utube', title: 'Tubo a U (due liquidi immiscibili)', caption: "Cambia la densità ρ₂ del liquido di destra: le due colonne rispettano ρ₁·h₁ = ρ₂·h₂. Il liquido meno denso sale più in alto." }
     ],
     exercises: [
-      { title: 'Pressione sul fondo della piscina', tag: 'Stevino',
+      { title: 'Pressione sul fondo della piscina', tag: 'Stevino', answer: 24500, unit: 'Pa',
         body: `<p>Quanto vale la pressione dovuta all'acqua a <span class="mono">h = 2,5 m</span> di profondità?
           (acqua <span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">g = 9,8 m/s²</span>; considera solo il contributo del liquido)</p>`,
         hints: [
@@ -1196,7 +1202,7 @@ const SECTIONS = [
           'Converto in kilopascal: <span class="mono">24 500 Pa = 24,5 kPa</span>.'
         ],
         result: "p ≈ 24,5 kPa dovuti all'acqua: ecco perché a fondo piscina senti la pressione sulle orecchie. ✅" },
-      { title: 'A quale profondità? (formula inversa di Stevino)', tag: 'formula inversa',
+      { title: 'A quale profondità? (formula inversa di Stevino)', tag: 'formula inversa', answer: 1.5, unit: 'm',
         body: `<p>In acqua (<span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">g = 9,8 m/s²</span>) la pressione dovuta al
           solo liquido vale <span class="mono">p = 14 700 Pa</span>. A quale profondità <span class="mono">h</span> ci troviamo?</p>`,
         hints: [
@@ -1210,7 +1216,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">h = 14 700 / 9 800 = 1,5 m</span>.'
         ],
         result: 'h = 1,5 m. ✅' },
-      { title: 'Il torchio idraulico: la forza risultante', tag: 'torchio idraulico',
+      { title: 'Il torchio idraulico: la forza risultante', tag: 'torchio idraulico', answer: 320, unit: 'N',
         body: `<p>Su un torchio idraulico applichi <span class="mono">F₁ = 40 N</span> sul pistone piccolo. Il pistone grande ha
           area <b>8 volte</b> quella del piccolo (<span class="mono">A₂/A₁ = 8</span>). Quanto vale la forza <span class="mono">F₂</span> sul pistone grande?</p>`,
         hints: [
@@ -1224,7 +1230,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">F₂ = 320 N</span>.'
         ],
         result: 'F₂ = 320 N: la forza è moltiplicata per 8. ✅' },
-      { title: 'Quale forza applicare? (formula inversa del torchio)', tag: 'formula inversa',
+      { title: 'Quale forza applicare? (formula inversa del torchio)', tag: 'formula inversa', answer: 120, unit: 'N',
         body: `<p>Vuoi sollevare un carico che richiede <span class="mono">F₂ = 600 N</span> sul pistone grande. Il rapporto delle aree
           è <span class="mono">A₂/A₁ = 5</span>. Quale forza <span class="mono">F₁</span> devi applicare sul pistone piccolo?</p>`,
         hints: [
@@ -1238,7 +1244,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">F₁ = 120 N</span>.'
         ],
         result: 'F₁ = 120 N: bastano 120 N per sollevare un carico da 600 N. ✅' },
-      { title: 'Misurare una densità con il tubo a U', tag: 'tubo a U · formula inversa',
+      { title: 'Misurare una densità con il tubo a U', tag: 'tubo a U · formula inversa', answer: 800, unit: 'kg/m³',
         body: `<p>In un tubo a U ci sono acqua (<span class="mono">ρ₁ = 1000 kg/m³</span>) e un olio immiscibile. Le colonne sopra
           l'interfaccia misurano <span class="mono">h₁ = 20 cm</span> (acqua) e <span class="mono">h₂ = 25 cm</span> (olio).
           Qual è la densità <span class="mono">ρ₂</span> dell'olio?</p>`,
@@ -1326,7 +1332,7 @@ const SECTIONS = [
     `,
     anim: 'continuity', animCaption: 'Sposta il cursore: restringendo A₂ le particelle nella strozzatura accelerano visibilmente.',
     exercises: [
-      { title: 'Un tubo che si restringe', tag: 'continuità',
+      { title: 'Un tubo che si restringe', tag: 'continuità', answer: 6, unit: 'm/s',
         body: `<p>In un tubo l'acqua scorre con velocità <span class="mono">v₁ = 1,5 m/s</span> in una sezione
           <span class="mono">A₁ = 20 cm²</span>. Il tubo poi si restringe a <span class="mono">A₂ = 5 cm²</span>.
           <b>Quanto vale la velocità v₂ nella strozzatura?</b></p>`,
@@ -1342,7 +1348,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">v₂ = 30 / 5 = 6 m/s</span>.'
         ],
         result: "v₂ = 6 m/s — la velocità è quadruplicata perché l'area è diventata un quarto. Coerente con l'intuizione! ✅" },
-      { title: 'Quale sezione serve? (formula inversa)', tag: 'formula inversa',
+      { title: 'Quale sezione serve? (formula inversa)', tag: 'formula inversa', answer: 5, unit: 'cm²',
         body: `<p>In un tubo l'acqua entra con <span class="mono">v₁ = 2 m/s</span> in una sezione <span class="mono">A₁ = 15 cm²</span>.
           Vuoi che nella strozzatura la velocità sia <span class="mono">v₂ = 6 m/s</span>. Quale area <span class="mono">A₂</span> serve?</p>`,
         hints: [
@@ -1356,7 +1362,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">A₂ = 30 / 6 = 5 cm²</span>.'
         ],
         result: 'A₂ = 5 cm². ✅' },
-      { title: 'La portata di un rubinetto', tag: 'portata',
+      { title: 'La portata di un rubinetto', tag: 'portata', answer: 0.3, unit: 'L/s',
         body: `<p>Da un rubinetto di sezione <span class="mono">A = 2 cm² = 2·10⁻⁴ m²</span> l'acqua esce a
           <span class="mono">v = 1,5 m/s</span>. Quanto vale la portata <span class="mono">Q</span> (in m³/s e in L/s)?</p>`,
         hints: [
@@ -1370,7 +1376,7 @@ const SECTIONS = [
           'Converto: <span class="mono">3·10⁻⁴ m³/s = 0,3 L/s</span>.'
         ],
         result: 'Q = 3·10⁻⁴ m³/s = 0,3 L/s. ✅' },
-      { title: 'Dalla portata alla velocità (formula inversa)', tag: 'formula inversa',
+      { title: 'Dalla portata alla velocità (formula inversa)', tag: 'formula inversa', answer: 2, unit: 'm/s',
         body: `<p>In un tubo di sezione <span class="mono">A = 6·10⁻⁴ m²</span> scorre una portata
           <span class="mono">Q = 1,2·10⁻³ m³/s</span>. Qual è la velocità <span class="mono">v</span> del fluido?</p>`,
         hints: [
@@ -1384,7 +1390,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">v = 2 m/s</span>.'
         ],
         result: 'v = 2 m/s. ✅' },
-      { title: 'Trovare la velocità di ingresso (formula inversa)', tag: 'formula inversa',
+      { title: 'Trovare la velocità di ingresso (formula inversa)', tag: 'formula inversa', answer: 1.5, unit: 'm/s',
         body: `<p>Nella parte larga di un tubo (<span class="mono">A₁ = 20 cm²</span>) la velocità è incognita; nella strozzatura
           (<span class="mono">A₂ = 5 cm²</span>) l'acqua va a <span class="mono">v₂ = 6 m/s</span>. Quanto vale <span class="mono">v₁</span>?</p>`,
         hints: [
@@ -1481,7 +1487,7 @@ const SECTIONS = [
       { anim: 'airfoil', title: 'Portanza dell\'ala', caption: "L'aria scorre più veloce sopra l'ala che sotto: sopra la pressione è minore, e la differenza genera la portanza verso l'alto." }
     ],
     exercises: [
-      { title: 'Pressione nella strozzatura', tag: 'Bernoulli',
+      { title: 'Pressione nella strozzatura', tag: 'Bernoulli', answer: 16875, unit: 'Pa',
         body: `<p>Riprendiamo il tubo <b>orizzontale</b> di prima: <span class="mono">v₁ = 1,5 m/s</span> nella sezione larga
           e <span class="mono">v₂ = 6 m/s</span> nella strozzatura (acqua, <span class="mono">ρ = 1000 kg/m³</span>).
           <b>Di quanto cala la pressione</b> passando dalla sezione larga a quella stretta?</p>`,
@@ -1498,7 +1504,7 @@ const SECTIONS = [
           'Quindi: <span class="mono">p₁ − p₂ = 500 · 33,75 = 16 875 Pa</span>.'
         ],
         result: 'La pressione cala di circa 16,9 kPa: dove l\'acqua corre più veloce, "spinge" di meno sulle pareti. ✅' },
-      { title: 'Trovare la velocità dalla caduta di pressione (formula inversa)', tag: 'formula inversa',
+      { title: 'Trovare la velocità dalla caduta di pressione (formula inversa)', tag: 'formula inversa', answer: 5, unit: 'm/s',
         body: `<p>Tubo orizzontale, acqua (<span class="mono">ρ = 1000 kg/m³</span>). Nella sezione larga <span class="mono">v₁ = 2 m/s</span>;
           tra le due sezioni la pressione cala di <span class="mono">Δp = p₁ − p₂ = 10 500 Pa</span>. Quanto vale <span class="mono">v₂</span>?</p>`,
         hints: [
@@ -1512,7 +1518,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">v₂ = √(4 + 21) = √25 = 5 m/s</span>.'
         ],
         result: 'v₂ = 5 m/s. ✅' },
-      { title: 'La pressione nella strozzatura (valore assoluto)', tag: 'Bernoulli',
+      { title: 'La pressione nella strozzatura (valore assoluto)', tag: 'Bernoulli', answer: 184000, unit: 'Pa',
         body: `<p>Tubo orizzontale, acqua (<span class="mono">ρ = 1000 kg/m³</span>). Nella sezione larga <span class="mono">p₁ = 200 000 Pa</span>
           e <span class="mono">v₁ = 2 m/s</span>; nella strozzatura <span class="mono">v₂ = 6 m/s</span>. Quanto vale <span class="mono">p₂</span>?</p>`,
         hints: [
@@ -1526,7 +1532,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">p₂ = 200 000 − 16 000 = 184 000 Pa</span>.'
         ],
         result: 'p₂ = 184 000 Pa: nella strozzatura la pressione è più bassa. ✅' },
-      { title: 'Dal termine cinetico alla velocità (formula inversa)', tag: 'formula inversa',
+      { title: 'Dal termine cinetico alla velocità (formula inversa)', tag: 'formula inversa', answer: 4, unit: 'm/s',
         body: `<p>Per l'acqua (<span class="mono">ρ = 1000 kg/m³</span>) il termine cinetico vale <span class="mono">½ρv² = 8 000 Pa</span>.
           A quale velocità <span class="mono">v</span> corrisponde?</p>`,
         hints: [
@@ -1540,7 +1546,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">v = √16 = 4 m/s</span>.'
         ],
         result: 'v = 4 m/s. ✅' },
-      { title: 'Trovare la velocità di ingresso (formula inversa)', tag: 'formula inversa',
+      { title: 'Trovare la velocità di ingresso (formula inversa)', tag: 'formula inversa', answer: 1, unit: 'm/s',
         body: `<p>Tubo orizzontale, acqua (<span class="mono">ρ = 1000 kg/m³</span>). Nella strozzatura <span class="mono">v₂ = 4 m/s</span>
           e la pressione cala di <span class="mono">Δp = 7 500 Pa</span>. Quanto vale <span class="mono">v₁</span> nella sezione larga?</p>`,
         hints: [
@@ -1639,7 +1645,7 @@ const SECTIONS = [
       { anim: 'venturi', title: 'Effetto Venturi', caption: 'Nella strozzatura la velocità aumenta e la pressione crolla: la depressione aspira il liquido dal tubicino (carburatori, vaporizzatori, trombe d\'acqua).' }
     ],
     exercises: [
-      { title: 'Il getto dal serbatoio (Torricelli)', tag: 'Torricelli',
+      { title: 'Il getto dal serbatoio (Torricelli)', tag: 'Torricelli', answer: 5.94, unit: 'm/s',
         body: `<p>Un serbatoio aperto contiene acqua. A <span class="mono">h = 1,8 m</span> sotto il pelo libero c'è un
           piccolo foro. <b>Con che velocità esce l'acqua?</b> (usa <span class="mono">g = 9,8 m/s²</span>)</p>`,
         hints: [
@@ -1654,7 +1660,7 @@ const SECTIONS = [
           'Estraggo la radice: <span class="mono">v = √35,28 ≈ 5,94 m/s</span>.'
         ],
         result: 'v ≈ 5,9 m/s — dipende solo dalla profondità h. ✅' },
-      { title: 'A quale profondità è il foro? (formula inversa)', tag: 'formula inversa',
+      { title: 'A quale profondità è il foro? (formula inversa)', tag: 'formula inversa', answer: 2.5, unit: 'm',
         body: `<p>Da un foro l'acqua esce con velocità <span class="mono">v = 7 m/s</span>. A quale profondità <span class="mono">h</span>
           sotto il pelo libero si trova il foro? (<span class="mono">g = 9,8 m/s²</span>)</p>`,
         hints: [
@@ -1668,7 +1674,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">h = 49 / 19,6 = 2,5 m</span>.'
         ],
         result: 'h = 2,5 m. ✅' },
-      { title: 'Un foro poco profondo', tag: 'Torricelli',
+      { title: 'Un foro poco profondo', tag: 'Torricelli', answer: 4.95, unit: 'm/s',
         body: `<p>In una vasca il foro è a <span class="mono">h = 1,25 m</span> sotto il pelo libero.
           Con quale velocità esce l'acqua? (<span class="mono">g = 9,8 m/s²</span>)</p>`,
         hints: [
@@ -1682,7 +1688,7 @@ const SECTIONS = [
           'Estraggo la radice: <span class="mono">v = √24,5 ≈ 4,95 m/s</span>.'
         ],
         result: 'v ≈ 4,95 m/s. ✅' },
-      { title: 'Dal getto alla profondità (formula inversa)', tag: 'formula inversa',
+      { title: 'Dal getto alla profondità (formula inversa)', tag: 'formula inversa', answer: 5, unit: 'm',
         body: `<p>Un getto esce da un foro con <span class="mono">v = 9,9 m/s</span>. A quale profondità
           <span class="mono">h</span> si trova il foro? (<span class="mono">g = 9,8 m/s²</span>)</p>`,
         hints: [
@@ -1696,7 +1702,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">h = 98,01 / 19,6 ≈ 5 m</span>.'
         ],
         result: 'h ≈ 5 m. ✅' },
-      { title: 'Un serbatoio profondo', tag: 'Torricelli',
+      { title: 'Un serbatoio profondo', tag: 'Torricelli', answer: 7.92, unit: 'm/s',
         body: `<p>Un serbatoio ha un foro a <span class="mono">h = 3,2 m</span> di profondità.
           Con quale velocità esce l'acqua? (<span class="mono">g = 9,8 m/s²</span>)</p>`,
         hints: [
@@ -1797,7 +1803,7 @@ const SECTIONS = [
       { anim: 'velprofile', title: 'Profilo di velocità', caption: 'Il profilo delle velocità nel tubo: parabolico nel regime laminare (massimo al centro), più piatto in quello turbolento.' }
     ],
     exercises: [
-      { title: 'Laminare o turbolento?', tag: 'Reynolds',
+      { title: 'Laminare o turbolento?', tag: 'Reynolds', answer: 3000, unit: 'Re',
         body: `<p>Acqua (<span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">η = 1,0·10⁻³ Pa·s</span>) scorre a
           <span class="mono">v = 0,15 m/s</span> in un tubo di diametro <span class="mono">D = 2 cm = 0,02 m</span>.
           <b>Il regime è laminare o turbolento?</b></p>`,
@@ -1814,7 +1820,7 @@ const SECTIONS = [
           'Confronto con le soglie: 3000 &gt; 2500.'
         ],
         result: 'Re ≈ 3000 → regime turbolento. ✅' },
-      { title: 'A quale velocità si passa a Re = 2000? (formula inversa)', tag: 'formula inversa',
+      { title: 'A quale velocità si passa a Re = 2000? (formula inversa)', tag: 'formula inversa', answer: 0.1, unit: 'm/s',
         body: `<p>Acqua (<span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">η = 1,0·10⁻³ Pa·s</span>) in un tubo
           <span class="mono">D = 0,02 m</span>. A quale velocità <span class="mono">v</span> il numero di Reynolds vale <span class="mono">Re = 2000</span>?</p>`,
         hints: [
@@ -1828,7 +1834,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">v = 2 / 20 = 0,1 m/s</span>.'
         ],
         result: 'v = 0,1 m/s: oltre questa velocità il flusso tende a diventare turbolento. ✅' },
-      { title: 'Un flusso lento', tag: 'Reynolds',
+      { title: 'Un flusso lento', tag: 'Reynolds', answer: 1000, unit: 'Re',
         body: `<p>Acqua (<span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">η = 1,0·10⁻³ Pa·s</span>) scorre a
           <span class="mono">v = 0,05 m/s</span> in un tubo <span class="mono">D = 0,02 m</span>. Calcola Re e indica il regime.</p>`,
         hints: [
@@ -1842,7 +1848,7 @@ const SECTIONS = [
           'Divido: <span class="mono">Re = 1 / 0,001 = 1000</span>.'
         ],
         result: 'Re = 1000 → regime laminare (Re < 2000). ✅' },
-      { title: 'Quale diametro per Re = 2500? (formula inversa)', tag: 'formula inversa',
+      { title: 'Quale diametro per Re = 2500? (formula inversa)', tag: 'formula inversa', answer: 0.025, unit: 'm',
         body: `<p>Acqua (<span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">η = 1,0·10⁻³ Pa·s</span>) scorre a
           <span class="mono">v = 0,1 m/s</span>. Quale diametro <span class="mono">D</span> dà <span class="mono">Re = 2500</span>?</p>`,
         hints: [
@@ -1856,7 +1862,7 @@ const SECTIONS = [
           'Calcolo: <span class="mono">D = 2,5 / 100 = 0,025 m</span>.'
         ],
         result: 'D = 0,025 m (2,5 cm). ✅' },
-      { title: "Un fluido molto viscoso", tag: 'Reynolds',
+      { title: "Un fluido molto viscoso", tag: 'Reynolds', answer: 90, unit: 'Re',
         body: `<p>Un olio (<span class="mono">ρ = 900 kg/m³</span>, <span class="mono">η = 0,09 Pa·s</span>) scorre a
           <span class="mono">v = 0,3 m/s</span> in un tubo <span class="mono">D = 0,03 m</span>. Calcola Re e indica il regime.</p>`,
         hints: [
@@ -2257,6 +2263,12 @@ function buildSection(s, i) {
       <span class="tag">${label}${ex.tag ? ' · ' + ex.tag : ''}</span>
       <h3 style="margin-top:10px">${ex.title}</h3>
       ${ex.body}
+      ${ex.answer != null ? `<div class="eser-verify">
+        <label>La tua risposta <span class="u">${ex.unit || ''}</span></label>
+        <input type="text" id="ans-${s.id}-${idx}" placeholder="scrivi un numero">
+        <button class="btn-primary" id="ans-btn-${s.id}-${idx}" style="padding:8px 16px">Verifica</button>
+        <div class="feedback" id="ansfb-${s.id}-${idx}"></div>
+      </div>` : ''}
       <div class="hints" id="hints-${s.id}-${idx}">${hintsHtml}</div>
       <div class="eser-actions">
         ${ex.hints && ex.hints.length ? `<button class="btn-ghost" id="hint-btn-${s.id}-${idx}">💡 Dammi un suggerimento</button>` : ''}
@@ -2340,6 +2352,25 @@ function buildSection(s, i) {
       sol.classList.toggle('show');
       e.target.textContent = sol.classList.contains('show') ? 'Nascondi la soluzione' : 'Mostra la soluzione completa';
     });
+    // verifica della risposta numerica
+    if (ex.answer != null) {
+      const ansBtn = sec.querySelector(`#ans-btn-${s.id}-${idx}`);
+      const ansInp = sec.querySelector(`#ans-${s.id}-${idx}`);
+      const ansFb = sec.querySelector(`#ansfb-${s.id}-${idx}`);
+      const check = () => {
+        const raw = (ansInp.value || '').trim().replace(',', '.');
+        if (raw === '') { ansFb.className = 'feedback no show'; ansFb.innerHTML = '✍️ Scrivi prima la tua risposta.'; return; }
+        const val = parseFloat(raw);
+        if (!isFinite(val)) { ansFb.className = 'feedback no show'; ansFb.innerHTML = '⚠ Inserisci un numero valido.'; return; }
+        const ok = Math.abs(val - ex.answer) <= Math.max(Math.abs(ex.answer) * 0.02, 1e-9);
+        ansFb.className = 'feedback ' + (ok ? 'ok' : 'no') + ' show';
+        ansFb.innerHTML = ok
+          ? '✅ <b>Corretto!</b> Ottimo lavoro. 🌟'
+          : 'Non è il valore atteso. 🌱 <span class="why">Prova con i suggerimenti, poi controlla la soluzione completa qui sotto.</span>';
+      };
+      ansBtn.addEventListener('click', check);
+      ansInp.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+    }
   });
 
   // wiring: animazioni + controlli (istanze create, avviate solo nella sotto-scheda Simulazioni)

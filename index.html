@@ -1481,6 +1481,20 @@ const SECTIONS = [
       <div class="callout"><span class="lbl">🔑 L'effetto sorprendente</span>
         Dove il fluido è più <b>veloce</b>, la pressione è più <b>bassa</b>. Sembra strano, ma è pura conservazione
         dell'energia: se cresce l'energia cinetica, deve calare quella di pressione. Osservalo nei manometri dell'animazione.</div>
+
+      <h2>Tubo non orizzontale: quando conta il dislivello</h2>
+      <p>Se il condotto <b>sale o scende</b>, l'altezza cambia e il termine <var>ρgh</var> <b>non</b> si può più trascurare.
+      Bisogna usare l'equazione di Bernoulli <b>completa</b> tra i due punti:</p>
+      <div class="formula"><var>p</var><span class="sub">1</span> + ½<var>ρv</var><span class="sub">1</span><span class="sup">2</span> + <var>ρg</var><var>h</var><span class="sub">1</span> = <var>p</var><span class="sub">2</span> + ½<var>ρv</var><span class="sub">2</span><span class="sup">2</span> + <var>ρg</var><var>h</var><span class="sub">2</span></div>
+      <p>Scegli un <b>livello di riferimento</b> (di solito il punto più basso, dove poni <var>h</var> = 0) e misura le quote da lì.
+      Riordinando per la pressione nel punto 2:</p>
+      <div class="formula"><var>p</var><span class="sub">2</span> = <var>p</var><span class="sub">1</span> + ½<var>ρ</var>(<var>v</var><span class="sub">1</span><span class="sup">2</span> − <var>v</var><span class="sub">2</span><span class="sup">2</span>) + <var>ρg</var>(<var>h</var><span class="sub">1</span> − <var>h</var><span class="sub">2</span>)</div>
+      <p>Due effetti si sommano: quello della <b>velocità</b> (come nel tubo orizzontale) e quello della <b>quota</b>.
+      Salendo (<var>h</var><span class="sub">2</span> &gt; <var>h</var><span class="sub">1</span>) il termine <var>ρg</var>(<var>h</var><span class="sub">1</span> − <var>h</var><span class="sub">2</span>) è negativo: a parità di velocità, <b>più in alto la pressione è minore</b>.</p>
+      <div class="callout tip"><span class="lbl">💡 Un esempio quotidiano</span>
+        È il motivo per cui, ai piani alti di un palazzo, l'acqua del rubinetto esce con meno pressione: salire di quota
+        "costa" pressione. Trovi un esercizio svolto nella sotto-scheda <b>Esercizi</b> e puoi calcolarlo con i tuoi dati
+        nel <b>🧮 Risolutore</b> (problema «Bernoulli con dislivello»).</div>
     `,
     sims: [
       { anim: 'bernoulli', title: 'Pressione e velocità', caption: 'Nella strozzatura la velocità cresce e la colonnina di pressione si abbassa: p e v vanno in senso opposto.' },
@@ -1559,7 +1573,26 @@ const SECTIONS = [
           'Sostituisco: <span class="mono">v₁ = √( 16 − 2·7 500/1000 )</span>.',
           'Calcolo: <span class="mono">v₁ = √(16 − 15) = √1 = 1 m/s</span>.'
         ],
-        result: 'v₁ = 1 m/s. ✅' }
+        result: 'v₁ = 1 m/s. ✅' },
+      { title: 'Bernoulli in un tubo che sale (non orizzontale)', tag: 'dislivello',
+        answer: 210100, unit: 'Pa',
+        body: `<p>Acqua (<span class="mono">ρ = 1000 kg/m³</span>, <span class="mono">g = 9,8 m/s²</span>) scorre in un condotto.
+          Nel punto 1 (in basso, <span class="mono">h₁ = 0</span>): <span class="mono">p₁ = 250 000 Pa</span>, <span class="mono">v₁ = 2 m/s</span>.
+          Nel punto 2, più in alto di <span class="mono">Δh = 3 m</span> e in una sezione più stretta: <span class="mono">v₂ = 5 m/s</span>.
+          <b>Quanto vale la pressione p₂?</b></p>`,
+        hints: [
+          'Il tubo sale: usa Bernoulli COMPLETA, con i termini ρgh. Poni h₁ = 0 e h₂ = Δh = 3 m.',
+          'Isola p₂: p₂ = p₁ + ½ρ(v₁² − v₂²) + ρg(h₁ − h₂).',
+          'Due effetti si sommano: la velocità che aumenta e la quota che sale, entrambi abbassano p₂.'
+        ],
+        steps: [
+          'Bernoulli completa: <span class="mono">p₁ + ½ρv₁² + ρgh₁ = p₂ + ½ρv₂² + ρgh₂</span>.',
+          'Isolo p₂: <span class="mono">p₂ = p₁ + ½ρ(v₁² − v₂²) + ρg(h₁ − h₂)</span>.',
+          'Termine di velocità: <span class="mono">½·1000·(2² − 5²) = 500·(4 − 25) = −10 500 Pa</span>.',
+          'Termine di quota: <span class="mono">1000·9,8·(0 − 3) = −29 400 Pa</span>.',
+          'Sommo: <span class="mono">p₂ = 250 000 − 10 500 − 29 400 = 210 100 Pa</span>.'
+        ],
+        result: 'p₂ = 210 100 Pa: salendo e accelerando, la pressione nel punto 2 è nettamente minore. ✅' }
     ],
     quiz: [
       { q: "L'equazione di Bernoulli è, in sostanza, l'espressione della...",
@@ -2058,6 +2091,22 @@ const PROBLEMS = [
     targets: {
       dp: { lab: 'Δp — caduta di pressione (p₁ − p₂)', unit: 'Pa', needs: ['rho', 'v1', 'v2'], run: x => { const r = 0.5 * x.rho * (x.v2 * x.v2 - x.v1 * x.v1); return { value: r, resultText: `Δp = p₁ − p₂ = ${pnum(r)} Pa`, steps: ['Tubo orizzontale: p₁ + ½ρv₁² = p₂ + ½ρv₂²', 'Riordino: p₁ − p₂ = ½·ρ·(v₂² − v₁²)', `Sostituisco: ½ · ${pnum(x.rho)} · (${pnum(x.v2)}² − ${pnum(x.v1)}²)`, `Calcolo: Δp = ${pnum(r)} Pa`] }; } },
       v2: { lab: 'v₂ — velocità nella strozzatura', unit: 'm/s', needs: ['rho', 'v1', 'dp'], run: x => { const r = Math.sqrt(x.v1 * x.v1 + 2 * x.dp / x.rho); return { value: r, resultText: `v₂ = ${pnum(r)} m/s`, steps: ['Parto da p₁ − p₂ = ½ρ(v₂² − v₁²)', 'Isolo v₂: v₂ = √( v₁² + 2·Δp/ρ )', `Sostituisco: √( ${pnum(x.v1)}² + 2·${pnum(x.dp)}/${pnum(x.rho)} )`, `Calcolo: v₂ = ${pnum(r)} m/s`] }; } }
+    }
+  },
+  {
+    id: 'bernoulliDislivello', label: 'Bernoulli con dislivello (tubo inclinato)', formula: 'p₁+½ρv₁²+ρgh₁ = p₂+½ρv₂²+ρgh₂',
+    vars: {
+      p1: { lab: 'p₁ — pressione nel punto 1', unit: 'Pa', ph: 'es. 250000' },
+      v1: { lab: 'v₁ — velocità nel punto 1', unit: 'm/s', ph: 'es. 2' },
+      v2: { lab: 'v₂ — velocità nel punto 2', unit: 'm/s', ph: 'es. 5' },
+      dh: { lab: 'Δh = h₂ − h₁ — dislivello (punto 2 sopra 1)', unit: 'm', ph: 'es. 3' },
+      rho: { lab: 'ρ — densità', unit: 'kg/m³', def: '1000' },
+      g: { lab: 'g — gravità', unit: 'm/s²', def: '9,8' },
+      p2: { lab: 'p₂ — pressione nel punto 2', unit: 'Pa', ph: 'es. 210100' }
+    },
+    targets: {
+      p2: { lab: 'p₂ — pressione nel punto 2', unit: 'Pa', needs: ['p1', 'v1', 'v2', 'dh', 'rho', 'g'], run: x => { const r = x.p1 + 0.5 * x.rho * (x.v1 * x.v1 - x.v2 * x.v2) - x.rho * x.g * x.dh; return { value: r, resultText: `p₂ = ${pnum(r)} Pa`, steps: ['Bernoulli completa: p₁+½ρv₁²+ρgh₁ = p₂+½ρv₂²+ρgh₂', 'Con Δh = h₂−h₁: p₂ = p₁ + ½ρ(v₁²−v₂²) − ρg·Δh', `Sostituisco: p₂ = ${pnum(x.p1)} + ½·${pnum(x.rho)}·(${pnum(x.v1)}²−${pnum(x.v2)}²) − ${pnum(x.rho)}·${pnum(x.g)}·${pnum(x.dh)}`, `Calcolo: p₂ = ${pnum(r)} Pa`] }; } },
+      p1: { lab: 'p₁ — pressione nel punto 1 (inversa)', unit: 'Pa', needs: ['p2', 'v1', 'v2', 'dh', 'rho', 'g'], run: x => { const r = x.p2 - 0.5 * x.rho * (x.v1 * x.v1 - x.v2 * x.v2) + x.rho * x.g * x.dh; return { value: r, resultText: `p₁ = ${pnum(r)} Pa`, steps: ['Parto da p₂ = p₁ + ½ρ(v₁²−v₂²) − ρg·Δh', 'Isolo p₁: p₁ = p₂ − ½ρ(v₁²−v₂²) + ρg·Δh', `Sostituisco: p₁ = ${pnum(x.p2)} − ½·${pnum(x.rho)}·(${pnum(x.v1)}²−${pnum(x.v2)}²) + ${pnum(x.rho)}·${pnum(x.g)}·${pnum(x.dh)}`, `Calcolo: p₁ = ${pnum(r)} Pa`] }; } }
     }
   },
   {

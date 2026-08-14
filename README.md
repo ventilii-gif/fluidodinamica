@@ -13,7 +13,7 @@ L'app è organizzata a **schede (moduli)** nella barra in alto, con tono rassicu
 1. **Introduzione** — presentazione del percorso, come è organizzato e **riferimenti storici** (da Archimede a Reynolds)
 2. **Fluidostatica** — pressione, legge di Stevino, principio di Pascal con il **torchio idraulico**, **tubo a U** con due liquidi immiscibili e principio di Archimede (3 simulazioni, 5 esercizi con formule inverse)
 3. **Portata e continuità** — `Q = A·v` e l'equazione `A₁v₁ = A₂v₂`
-4. **Bernoulli** — conservazione dell'energia per i fluidi
+4. **Bernoulli** — conservazione dell'energia per i fluidi (tubo orizzontale **e non orizzontale**, con il termine di dislivello ρgh)
 5. **Applicazioni** — effetto Venturi, teorema di Torricelli, tubo di Pitot, portanza dell'ala
 6. **Viscosità e numero di Reynolds** — regime laminare e turbolento
 7. **Risolutore di problemi** — strumento interattivo per verificare metodo e calcolo con i propri dati

@@ -206,6 +206,16 @@
   .opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
   .opt.wrong .key { background: var(--bad); color: #fff; border-color: var(--bad); }
   .opt:disabled { cursor: default; }
+  .opt.sel { border-color: var(--accent); background: var(--accent-soft); }
+  .opt.sel .key { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .fq-review { margin-top: 20px; }
+  .fq-review h3 { margin: 0 0 8px; font-size: 1.05rem; }
+  .fq-item { border-top: 1px dashed var(--border); padding: 12px 0; }
+  .fq-item .fq-q { font-weight: 600; margin-bottom: 4px; }
+  .fq-item .fq-line { font-size: .9rem; margin: 2px 0; }
+  .fq-ok { color: var(--good); font-weight: 700; }
+  .fq-no { color: var(--bad); font-weight: 700; }
+  .fq-item .fq-why { color: var(--text-soft); font-size: .88rem; margin-top: 4px; }
   .feedback { margin-top: 14px; padding: 13px 16px; border-radius: 12px; display: none; font-weight: 500; }
   .feedback.show { display: block; animation: fade .3s; }
   .feedback.ok { background: var(--good-soft); color: var(--good); }
@@ -1976,6 +1986,39 @@ const SECTIONS = [
   },
 
   {
+    id: 'ripasso', nav: 'Quiz finale', icon: '🏆', kicker: 'Ripasso finale',
+    title: 'Quiz finale riepilogativo',
+    theory: `
+      <p class="lead">Sei arrivato/a in fondo: è il momento di mettere tutto insieme! 🎉 Questo quiz raccoglie
+      <b>20 domande</b> da tutti i moduli — teoria e calcoli. A differenza dei quiz dei singoli moduli, qui
+      <b>non vedrai subito se una risposta è giusta</b>: rispondi con calma a tutte, e solo alla fine otterrai il
+      <b>punteggio</b>, un <b>commento</b> e la <b>soluzione</b> di ogni quesito. Buon lavoro!</p>
+    `,
+    finalQuiz: [
+      { q: "La pressione è definita come una forza per unità di...", opts: ["superficie", "volume", "lunghezza", "tempo"], correct: 0, why: "p = F/A: forza su unità di superficie (pascal)." },
+      { q: "In acqua (ρ = 1000 kg/m³, g = 9,8 m/s²), quanto vale la pressione del solo liquido a h = 5 m?", opts: ["49 000 Pa", "4 900 Pa", "490 000 Pa", "98 000 Pa"], correct: 0, why: "p = ρgh = 1000·9,8·5 = 49 000 Pa." },
+      { q: "Il principio di Archimede: la spinta è pari al peso...", opts: ["del fluido spostato", "del corpo", "dell'aria sopra il corpo", "della sola parte emersa"], correct: 0, why: "S = ρ_fluido·g·V_immerso, cioè il peso del fluido spostato." },
+      { q: "Un corpo galleggia se la sua densità media è...", opts: ["minore di quella del fluido", "maggiore di quella del fluido", "uguale a zero", "uguale a quella dell'aria"], correct: 0, why: "Densità minore del fluido → la spinta lo sostiene: galleggia." },
+      { q: "Torchio idraulico: con F₁ = 50 N e A₂/A₁ = 4, quanto vale F₂?", opts: ["200 N", "12,5 N", "54 N", "800 N"], correct: 0, why: "F₂ = F₁·(A₂/A₁) = 50·4 = 200 N." },
+      { q: "Tubo a U: acqua (ρ₁ = 1000) con h₁ = 10 cm, altro liquido con h₂ = 20 cm. Quanto vale ρ₂?", opts: ["500 kg/m³", "2000 kg/m³", "250 kg/m³", "1000 kg/m³"], correct: 0, why: "ρ₁h₁ = ρ₂h₂ → ρ₂ = 1000·10/20 = 500 kg/m³." },
+      { q: "L'equazione di continuità per un fluido incomprimibile è...", opts: ["A₁·v₁ = A₂·v₂", "A₁ + v₁ = A₂ + v₂", "v₁/A₁ = v₂/A₂", "A₁·A₂ = v₁·v₂"], correct: 0, why: "La portata Q = A·v si conserva." },
+      { q: "Continuità: A₁ = 10 cm², v₁ = 3 m/s, A₂ = 6 cm². Quanto vale v₂?", opts: ["5 m/s", "1,8 m/s", "15 m/s", "0,5 m/s"], correct: 0, why: "v₂ = A₁·v₁/A₂ = (10·3)/6 = 5 m/s." },
+      { q: "Nel Sistema Internazionale la portata Q si misura in...", opts: ["m³/s", "m/s", "kg", "Pa"], correct: 0, why: "È un volume (m³) al secondo." },
+      { q: "In un tubo orizzontale, dove il fluido è più veloce la pressione è...", opts: ["più bassa", "più alta", "uguale", "nulla"], correct: 0, why: "Bernoulli: se cresce ½ρv², cala p." },
+      { q: "Tubo orizzontale, acqua (ρ = 1000). Con v₁ = 1 m/s e v₂ = 3 m/s, quanto vale Δp = p₁ − p₂?", opts: ["4 000 Pa", "8 000 Pa", "2 000 Pa", "5 000 Pa"], correct: 0, why: "Δp = ½ρ(v₂² − v₁²) = 0,5·1000·(9 − 1) = 4 000 Pa." },
+      { q: "Il termine ρgh nell'equazione di Bernoulli va considerato quando il condotto...", opts: ["non è orizzontale (c'è un dislivello)", "è sempre orizzontale", "ha sezione costante", "è molto lungo"], correct: 0, why: "Se l'altezza cambia (tubo che sale/scende), ρgh non si semplifica." },
+      { q: "Teorema di Torricelli: da un foro a h = 5 m, con che velocità esce l'acqua? (g = 9,8)", opts: ["9,9 m/s", "98 m/s", "49 m/s", "3,1 m/s"], correct: 0, why: "v = √(2·9,8·5) = √98 ≈ 9,9 m/s." },
+      { q: "Nel teorema di Torricelli la velocità di uscita dipende...", opts: ["dalla profondità h del foro", "dalla densità del liquido", "dalla larghezza del serbatoio", "dalla temperatura"], correct: 0, why: "v = √(2gh): contano solo h e g." },
+      { q: "Effetto Venturi: nella strozzatura di un condotto la pressione...", opts: ["diminuisce", "aumenta", "resta uguale", "si annulla"], correct: 0, why: "La velocità aumenta e, per Bernoulli, la pressione cala." },
+      { q: "Il tubo di Pitot serve a misurare...", opts: ["la velocità di un fluido", "la temperatura", "la massa", "il volume"], correct: 0, why: "Confronta pressione statica e dinamica per ricavare la velocità." },
+      { q: "La portanza dell'ala nasce perché sopra l'ala la pressione è...", opts: ["minore che sotto", "maggiore che sotto", "uguale a sotto", "sempre nulla"], correct: 0, why: "Sopra l'aria è più veloce → pressione minore → spinta verso l'alto." },
+      { q: "La viscosità η di un fluido rappresenta...", opts: ["l'attrito interno tra i suoi strati", "la sua densità", "la sua temperatura", "la sua velocità massima"], correct: 0, why: "Misura quanto il fluido resiste allo scorrimento." },
+      { q: "Numero di Reynolds: ρ = 1000, v = 0,2 m/s, D = 0,01 m, η = 0,001 Pa·s. Quanto vale Re?", opts: ["2000", "200", "20 000", "500"], correct: 0, why: "Re = ρvD/η = (1000·0,2·0,01)/0,001 = 2000." },
+      { q: "Un flusso in un tubo ha Re = 3000. Il regime è...", opts: ["turbolento", "laminare", "di transizione", "fermo"], correct: 0, why: "Re oltre ~2500 indica regime turbolento." }
+    ]
+  },
+
+  {
     id: 'glossario', nav: 'Glossario', icon: '📚', kicker: 'Ripasso rapido',
     title: 'Glossario della fluidodinamica',
     theory: `
@@ -2345,6 +2388,14 @@ function buildSection(s, i) {
       <div id="solverbody-${s.id}"></div>
     </div>` : '';
 
+  // --- blocco Quiz finale riepilogativo (scheda dedicata) ---
+  const finalBlock = s.finalQuiz ? `
+    <div class="card quiz" id="final-${s.id}">
+      <h2 style="margin-top:0">🏆 Quiz finale riepilogativo</h2>
+      <div class="qcount">${s.finalQuiz.length} domande da tutti i moduli. Il punteggio e le soluzioni appaiono solo alla fine.</div>
+      <div id="finalbody-${s.id}"></div>
+    </div>` : '';
+
   // --- navigazione tra schede ---
   const navBtns = `
     <div class="section-nav">
@@ -2363,7 +2414,7 @@ function buildSection(s, i) {
     const panels = subs.map((t, k) => `<div class="subpanel${k === 0 ? ' active' : ''}" data-panel="${t[0]}">${t[2]}</div>`).join('');
     bodyHtml = bar + panels;
   } else {
-    bodyHtml = `<div class="theory">${s.theory || ''}</div>` + solverBlock;
+    bodyHtml = `<div class="theory">${s.theory || ''}</div>` + solverBlock + finalBlock;
   }
 
   sec.innerHTML = head + bodyHtml + navBtns;
@@ -2437,6 +2488,9 @@ function buildSection(s, i) {
 
   // risolutore
   if (s.solver) buildSolver(sec.querySelector('#solverbody-' + s.id));
+
+  // quiz finale riepilogativo
+  if (s.finalQuiz) buildFinalQuiz(sec.querySelector('#finalbody-' + s.id), s);
 }
 
 /* ============================================================
@@ -2539,6 +2593,99 @@ function showQuizDone(s) {
   body.querySelector('#retry-' + s.id).addEventListener('click', () => renderQuiz(s));
   const gn = body.querySelector('#go-next-' + s.id);
   if (gn) gn.addEventListener('click', () => goTo(currentIndex + 1));
+}
+
+/* ============================================================
+   QUIZ FINALE RIEPILOGATIVO
+   (nessun riscontro per domanda; punteggio e soluzioni alla fine)
+   ============================================================ */
+function buildFinalQuiz(container, s) {
+  const qs = s.finalQuiz;
+  const total = qs.length;
+  let order, answers, idx;
+
+  function start() {
+    order = shuffle(qs.map((_, k) => k));
+    answers = new Array(total).fill(null); // per posizione: { qi, chosen }
+    idx = 0;
+    render();
+  }
+
+  function render() {
+    if (idx >= total) { results(); return; }
+    const qi = order[idx];
+    const question = qs[qi];
+    const optOrder = shuffle(question.opts.map((_, k) => k));
+    const dots = order.map((_, k) => `<span class="dot ${answers[k] != null ? 'done' : (k === idx ? 'current' : '')}"></span>`).join('');
+    const last = idx === total - 1;
+    container.innerHTML = `
+      <div class="quiz-progress">${dots}</div>
+      <div class="qcount">Domanda ${idx + 1} di ${total}</div>
+      <div class="qtext">${question.q}</div>
+      <div class="options" id="fq-opts"></div>
+      <div class="quiz-actions">
+        <button class="btn-ghost" id="fq-prev" ${idx === 0 ? 'disabled' : ''}>← Indietro</button>
+        <button class="btn-primary" id="fq-next" disabled>${last ? 'Vedi il risultato →' : 'Prossima →'}</button>
+      </div>`;
+    const optsEl = container.querySelector('#fq-opts');
+    let chosen = answers[idx] ? answers[idx].chosen : null;
+    optOrder.forEach((origIdx, pos) => {
+      const btn = document.createElement('button');
+      btn.className = 'opt' + (chosen === origIdx ? ' sel' : '');
+      btn.innerHTML = `<span class="key">${LETTERS[pos]}</span><span>${question.opts[origIdx]}</span>`;
+      btn.addEventListener('click', () => {
+        chosen = origIdx;
+        answers[idx] = { qi, chosen: origIdx };
+        [...optsEl.children].forEach(c => c.classList.remove('sel'));
+        btn.classList.add('sel');
+        container.querySelector('#fq-next').disabled = false;
+      });
+      optsEl.appendChild(btn);
+    });
+    if (chosen != null) container.querySelector('#fq-next').disabled = false;
+    container.querySelector('#fq-next').addEventListener('click', () => { idx++; render(); });
+    container.querySelector('#fq-prev').addEventListener('click', () => { if (idx > 0) { idx--; render(); } });
+  }
+
+  function results() {
+    let score = 0;
+    answers.forEach(a => { if (a && a.chosen === qs[a.qi].correct) score++; });
+    let emoji, msg;
+    if (score === total) { emoji = '🏆'; msg = 'Perfetto: tutte corrette! Hai davvero padroneggiato la fluidodinamica.'; }
+    else if (score >= total - 3) { emoji = '🌟'; msg = 'Eccellente! Preparazione solidissima, ci sei quasi al massimo.'; }
+    else if (score >= total * 0.7) { emoji = '👏'; msg = 'Molto bene! Ottimo lavoro complessivo: rivedi giusto qualche punto.'; }
+    else if (score >= total * 0.5) { emoji = '👍'; msg = 'Buon risultato! Ripassa i moduli dei quesiti sbagliati e riprova: migliorerai di sicuro.'; }
+    else { emoji = '🌱'; msg = 'È un ottimo punto di partenza. Rivedi con calma la teoria dei moduli e riprova: farai un bel salto in avanti!'; }
+
+    const review = order.map((qi, k) => {
+      const question = qs[qi];
+      const a = answers[k];
+      const chosen = a ? a.chosen : null;
+      const ok = chosen === question.correct;
+      const yourAns = chosen != null ? question.opts[chosen] : '(nessuna risposta)';
+      return `<div class="fq-item">
+        <div class="fq-q">${k + 1}. ${question.q}</div>
+        <div class="fq-line">La tua risposta: <span class="${ok ? 'fq-ok' : 'fq-no'}">${yourAns} ${ok ? '✓' : '✗'}</span></div>
+        ${ok ? '' : `<div class="fq-line">Risposta corretta: <span class="fq-ok">${question.opts[question.correct]}</span></div>`}
+        <div class="fq-why">${question.why}</div>
+      </div>`;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="quiz-done">
+        <div class="big">${emoji}</div>
+        <h3>${score} / ${total} corrette</h3>
+        <p style="color:var(--text-soft);max-width:520px;margin:6px auto 18px">${msg}</p>
+        <button class="btn-primary" id="fq-retry">↻ Rifai il quiz finale</button>
+      </div>
+      <div class="fq-review">
+        <h3>📋 Soluzioni commentate</h3>
+        ${review}
+      </div>`;
+    container.querySelector('#fq-retry').addEventListener('click', () => { start(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  }
+
+  start();
 }
 
 /* ============================================================

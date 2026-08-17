@@ -17,7 +17,8 @@ L'app è organizzata a **schede (moduli)** nella barra in alto, con tono rassicu
 5. **Applicazioni** — effetto Venturi, teorema di Torricelli, tubo di Pitot, portanza dell'ala
 6. **Viscosità e numero di Reynolds** — regime laminare e turbolento
 7. **Risolutore di problemi** — strumento interattivo per verificare metodo e calcolo con i propri dati
-8. **Glossario** — tutte le definizioni e le formule chiave per il ripasso
+8. **Quiz finale** — 20 quesiti riepilogativi da tutti i moduli, con **punteggio, commento e soluzioni solo al completamento**
+9. **Glossario** — tutte le definizioni e le formule chiave per il ripasso
 
 ### 🗂️ Struttura di ogni modulo
 Dentro ogni scheda-modulo ci sono **quattro sotto-schede** dedicate:

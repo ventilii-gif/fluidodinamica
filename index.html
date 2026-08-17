@@ -2601,24 +2601,29 @@ function showQuizDone(s) {
    ============================================================ */
 function buildFinalQuiz(container, s) {
   const qs = s.finalQuiz;
-  const total = qs.length;
   let order, answers, idx;
 
-  function start() {
-    order = shuffle(qs.map((_, k) => k));
-    answers = new Array(total).fill(null); // per posizione: { qi, chosen }
+  function start(pool) {
+    const base = (pool && pool.length) ? pool : qs.map((_, k) => k);
+    order = shuffle(base);
+    answers = new Array(order.length).fill(null); // per posizione: { qi, chosen }
     idx = 0;
     render();
   }
 
   function render() {
+    const total = order.length;
     if (idx >= total) { results(); return; }
     const qi = order[idx];
     const question = qs[qi];
     const optOrder = shuffle(question.opts.map((_, k) => k));
     const dots = order.map((_, k) => `<span class="dot ${answers[k] != null ? 'done' : (k === idx ? 'current' : '')}"></span>`).join('');
     const last = idx === total - 1;
+    const subsetNote = total < qs.length
+      ? `<div class="callout tip" style="margin:0 0 12px"><span class="lbl">🔁 Ripasso mirato</span> Stai rivedendo solo le ${total} domande che avevi sbagliato.</div>`
+      : '';
     container.innerHTML = `
+      ${subsetNote}
       <div class="quiz-progress">${dots}</div>
       <div class="qcount">Domanda ${idx + 1} di ${total}</div>
       <div class="qtext">${question.q}</div>
@@ -2648,11 +2653,19 @@ function buildFinalQuiz(container, s) {
   }
 
   function results() {
+    const total = order.length;
     let score = 0;
-    answers.forEach(a => { if (a && a.chosen === qs[a.qi].correct) score++; });
+    answers.forEach((a, k) => { if (a && a.chosen === qs[order[k]].correct) score++; });
+    // segna il quiz finale come completato → conta nella barra di progresso
+    progress[s.id] = true; saveProgress(); buildNav(); updateGlobal();
+    // domande sbagliate (o non risposte), come indici in qs
+    const wrong = order.filter((qi, k) => !(answers[k] && answers[k].chosen === qs[qi].correct));
+    const isSubset = total < qs.length;
+
     let emoji, msg;
-    if (score === total) { emoji = '🏆'; msg = 'Perfetto: tutte corrette! Hai davvero padroneggiato la fluidodinamica.'; }
-    else if (score >= total - 3) { emoji = '🌟'; msg = 'Eccellente! Preparazione solidissima, ci sei quasi al massimo.'; }
+    if (score === total && !isSubset) { emoji = '🏆'; msg = 'Perfetto: tutte corrette! Hai davvero padroneggiato la fluidodinamica.'; }
+    else if (score === total && isSubset) { emoji = '🎯'; msg = 'Ottimo! Hai recuperato tutte le domande che avevi sbagliato.'; }
+    else if (score >= total - Math.max(1, Math.round(total * 0.15))) { emoji = '🌟'; msg = 'Eccellente! Preparazione solidissima, ci sei quasi al massimo.'; }
     else if (score >= total * 0.7) { emoji = '👏'; msg = 'Molto bene! Ottimo lavoro complessivo: rivedi giusto qualche punto.'; }
     else if (score >= total * 0.5) { emoji = '👍'; msg = 'Buon risultato! Ripassa i moduli dei quesiti sbagliati e riprova: migliorerai di sicuro.'; }
     else { emoji = '🌱'; msg = 'È un ottimo punto di partenza. Rivedi con calma la teoria dei moduli e riprova: farai un bel salto in avanti!'; }
@@ -2676,13 +2689,16 @@ function buildFinalQuiz(container, s) {
         <div class="big">${emoji}</div>
         <h3>${score} / ${total} corrette</h3>
         <p style="color:var(--text-soft);max-width:520px;margin:6px auto 18px">${msg}</p>
-        <button class="btn-primary" id="fq-retry">↻ Rifai il quiz finale</button>
+        <button class="btn-primary" id="fq-retry">↻ Rifai tutto (20)</button>
+        ${wrong.length ? `<button class="btn-ghost" id="fq-wrong" style="margin-left:8px">🔁 Riprova solo le sbagliate (${wrong.length})</button>` : ''}
       </div>
       <div class="fq-review">
         <h3>📋 Soluzioni commentate</h3>
         ${review}
       </div>`;
     container.querySelector('#fq-retry').addEventListener('click', () => { start(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    const wb = container.querySelector('#fq-wrong');
+    if (wb) wb.addEventListener('click', () => { start(wrong); window.scrollTo({ top: 0, behavior: 'smooth' }); });
   }
 
   start();
@@ -2720,7 +2736,7 @@ function goTo(i) {
 }
 
 function updateGlobal() {
-  const quizSections = SECTIONS.filter(s => s.quiz);
+  const quizSections = SECTIONS.filter(s => s.quiz || s.finalQuiz);
   const done = quizSections.filter(s => progress[s.id]).length;
   const pct = Math.round(done / quizSections.length * 100);
   document.getElementById('globalFill').style.width = pct + '%';
